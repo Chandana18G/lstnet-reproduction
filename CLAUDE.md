@@ -145,4 +145,5 @@ CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 
   LSTNet now has to beat 0.0981 for the deep part to earn its complexity.
 - Next: `src/model.py` (LSTNet-Skip, part by part with shape checks) and `src/train.py`;
   first verify the run-script settings in github.com/laiguokun/LSTNet.
-- Repo is local only; Chandana decides when it goes on GitHub (then add it to the portfolio).
+- 2026-10-18: public repo github.com/Chandana18G/lstnet-reproduction created. Chandana chose
+  **not** to add it to the portfolio or profile README yet: do that once LSTNet is reproduced.
