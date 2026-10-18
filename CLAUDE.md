@@ -116,6 +116,7 @@ lstnet-reproduction/
 ├── scripts/download_data.sh
 ├── notebooks/01_explore_electricity.ipynb, 01_explore_solar.ipynb
 ├── src/data.py, model.py, metrics.py, train.py, baselines.py
+├── tests/test_data_and_metrics.py   (pytest tests/)
 └── results/
 ```
 CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 0`
@@ -137,5 +138,11 @@ CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 
 - 2026-10-18: `02_first_network.ipynb`: one shared neuron (q = 24, h = 24), test RSE 0.1032 /
   CORR 0.8698 (one seed). "Same hour yesterday" alone gives RSE 0.1048, better than the paper's
   AR (0.1054); LSTNet-Skip (0.1007) is only ~4% better than that rule. Week-1 milestone done.
-- Next: `data.py` + `metrics.py` (move the code from notebook 02), AR baseline per customer.
+- 2026-10-18: `src/data.py`, `src/metrics.py` + 9 passing toy tests; `src/baselines.py`.
+  AR per customer, L = 256 (chosen on valid from 2^0..2^9): test RSE 0.0981 / CORR 0.9231,
+  better than the paper's AR (0.1054) AND LSTNet-Skip (0.1007). Cross-checked with an
+  independent implementation. Same hour yesterday: 0.1048. Table in `results/experiments.md`.
+  LSTNet now has to beat 0.0981 for the deep part to earn its complexity.
+- Next: `src/model.py` (LSTNet-Skip, part by part with shape checks) and `src/train.py`;
+  first verify the run-script settings in github.com/laiguokun/LSTNet.
 - Repo is local only; Chandana decides when it goes on GitHub (then add it to the portfolio).

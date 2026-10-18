@@ -21,7 +21,7 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 
 - [x] Data downloaded and explored (`notebooks/01_explore_electricity.ipynb`)
 - [x] First network: one shared neuron, test RSE 0.1032 / CORR 0.8698, one seed (`notebooks/02_first_network.ipynb`)
-- [ ] Data windows, metrics, AR baseline
+- [x] Data windows, metrics (with tests), AR baseline: test RSE 0.0981 / CORR 0.9231, already better than the paper's LSTNet-Skip ([experiment table](results/experiments.md))
 - [ ] LSTNet-Skip reproduced
 - [ ] Improvement (RevIN), linear comparison (DLinear), ablation
 - [ ] Multi-seed runs and statistical tests
@@ -33,6 +33,8 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 pip install -r requirements.txt
 bash scripts/download_data.sh      # downloads into data/ (not committed)
 jupyter notebook notebooks/
+pytest tests/                       # checks windows, split and metrics on toy arrays
+python src/baselines.py --data electricity --horizon 24   # naive + AR baselines (~8 min on CPU)
 ```
 
 Data source: [laiguokun/multivariate-time-series-data](https://github.com/laiguokun/multivariate-time-series-data).
@@ -42,7 +44,11 @@ Data source: [laiguokun/multivariate-time-series-data](https://github.com/laiguo
 ```
 scripts/download_data.sh   download both datasets into data/
 notebooks/                 data exploration, first network
-src/                       data windows, model, metrics, training (in progress)
+src/data.py                loading, scaling, split, windows
+src/metrics.py             RSE, CORR, per-window loss
+src/baselines.py           seasonal naive and AR (one model per series)
+tests/                     small hand-checkable tests
+results/experiments.md     experiment table
 results/figures/           plots used in the report
 AI_USAGE.md                log of AI assistance, as required by the course
 ```
