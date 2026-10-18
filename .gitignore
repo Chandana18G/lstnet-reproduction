@@ -1,0 +1,19 @@
+# Datasets are downloaded with scripts/download_data.sh, never committed
+data/
+
+# Checkpoints and large run outputs
+checkpoints/
+*.pt
+
+# Python / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
