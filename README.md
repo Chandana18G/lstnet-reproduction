@@ -20,6 +20,7 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 ## Status
 
 - [x] Data downloaded and explored (`notebooks/01_explore_electricity.ipynb`)
+- [x] First network: one shared neuron, test RSE 0.1032 / CORR 0.8698, one seed (`notebooks/02_first_network.ipynb`)
 - [ ] Data windows, metrics, AR baseline
 - [ ] LSTNet-Skip reproduced
 - [ ] Improvement (RevIN), linear comparison (DLinear), ablation
@@ -31,7 +32,7 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 ```bash
 pip install -r requirements.txt
 bash scripts/download_data.sh      # downloads into data/ (not committed)
-jupyter notebook notebooks/01_explore_electricity.ipynb
+jupyter notebook notebooks/
 ```
 
 Data source: [laiguokun/multivariate-time-series-data](https://github.com/laiguokun/multivariate-time-series-data).
@@ -40,7 +41,7 @@ Data source: [laiguokun/multivariate-time-series-data](https://github.com/laiguo
 
 ```
 scripts/download_data.sh   download both datasets into data/
-notebooks/                 data exploration
+notebooks/                 data exploration, first network
 src/                       data windows, model, metrics, training (in progress)
 results/figures/           plots used in the report
 AI_USAGE.md                log of AI assistance, as required by the course

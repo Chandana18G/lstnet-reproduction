@@ -134,4 +134,8 @@ CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 
 
 ## Status
 - 2026-10-18: repo created, data downloaded, Electricity exploration notebook done.
-- Next: first tiny PyTorch network notebook (week-1 milestone), then `data.py` + `metrics.py`.
+- 2026-10-18: `02_first_network.ipynb`: one shared neuron (q = 24, h = 24), test RSE 0.1032 /
+  CORR 0.8698 (one seed). "Same hour yesterday" alone gives RSE 0.1048, better than the paper's
+  AR (0.1054); LSTNet-Skip (0.1007) is only ~4% better than that rule. Week-1 milestone done.
+- Next: `data.py` + `metrics.py` (move the code from notebook 02), AR baseline per customer.
+- Repo is local only; Chandana decides when it goes on GitHub (then add it to the portfolio).
