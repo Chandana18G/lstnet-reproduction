@@ -70,11 +70,11 @@ def main():
     h = args.horizon
 
     data, scale = max_scale(load_raw(args.data))
-    # q only sets where the first training target lies; use the largest L of the grid so
-    # every model is evaluated on exactly the same validation and test targets.
+    # Validation and test targets do not depend on q, so every model is scored on exactly the
+    # same hours. q = 1 gives the longest list of training targets; ar_forecasts() then drops
+    # the first ones that have fewer than L past steps.
     lag_grid = [2 ** k for k in range(10)]
-    tr, va, te = split_targets(len(data), q=max(lag_grid), h=h)
-    tr_all, _, _ = split_targets(len(data), q=1, h=h)        # AR(L) may use earlier targets
+    tr_all, va, te = split_targets(len(data), q=1, h=h)
 
     rows = []
     pred_dir = RESULTS / "predictions"
