@@ -1,11 +1,11 @@
 # AI usage log
 
-The course allows AI tools if their significant use is documented. We understand, have checked
-and can change every line we hand in.
+The course allows AI tools for programming, debugging, explanations and documentation if their
+significant use is documented. We used **Claude Code** (Anthropic). We chose the paper, the
+datasets and the comparison models, and we can explain and change every line we hand in.
 
-| Date | Tool | What we asked | What we used |
-|---|---|---|---|
-| 2026-10-18 | Claude Code (Claude Opus) | Review of our project plan against the paper and the course rules | Corrections we adopted: 10 seeds instead of 5 (Wilcoxon with 5 pairs cannot reach p < 0.05); Diebold–Mariano settings (Newey–West lag 23, Harvey–Leybourne–Newbold correction, Holm correction); list of paper-vs-code differences to verify in the authors' code; week-by-week plan |
-| 2026-10-18 | Claude Code (Claude Opus) | Repository setup and first exploration notebook for Electricity | `.gitignore`, `requirements.txt`, `scripts/download_data.sh`, `notebooks/01_explore_electricity.ipynb` (drafted by the tool, then read and checked by Chandana) |
-| 2026-10-18 | Claude Code (Claude Opus) | First PyTorch network notebook (one neuron, horizon 24) with explanations | `notebooks/02_first_network.ipynb` (drafted by the tool, explained line by line to Chandana) |
-| 2026-10-18 | Claude Code (Claude Opus) | Shared code for windows, metrics, tests and the AR baseline | `src/data.py`, `src/metrics.py`, `src/baselines.py`, `tests/test_data_and_metrics.py`, `results/experiments.md` (drafted by the tool; the AR result was cross-checked with an independent implementation) |
+| Date | What we used AI for |
+|---|---|
+| 18.10.2026 | Checking our project plan against the paper and the course rules. Changes we adopted: 10 seeds instead of 5 and the Diebold–Mariano settings. |
+| 18.10.2026 | Drafting code for data loading, exploration, the first network, metrics with tests and the AR baseline. |
+| 18.10.2026 | Verifying the unexpected AR result with a second, independent implementation. |
