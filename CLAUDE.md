@@ -9,7 +9,7 @@
   "remove one component and measure what it contributes; compare with a simple linear model".
 - Team of two. Each person owns one dataset; the code is shared.
   - Chandana: **Electricity** (321 customers, hourly, 26,304 steps)
-  - Teammate: **Solar-Energy** (137 PV plants, 10-minute steps, 52,560 steps)
+  - Dinesh: **Solar-Energy** (137 PV plants, 10-minute steps, 52,560 steps)
 - The repo will be public on GitHub and linked on LinkedIn, so keep it clean and readable.
 
 ## Deadlines (the exam is 100% of the grade)
@@ -101,6 +101,26 @@ Note: Electricity LSTNet-Skip RSE is 0.1007 at both h = 12 and h = 24; use the h
 Solar (teammate): paper tuned p only in 2–64, but one day = 144 steps. With q = 168, p = 144
 gives 1-step skip sequences, so q ≥ 144·k + ω is needed (memory-heavy). Watch night zeros and
 constant plants.
+
+### Solar handoff (Dinesh, from 2026-10-19)
+Solar runs on Dinesh's machine, not Chandana's laptop (7.7 GB RAM). The shared code already
+supports Solar (`STEPS_PER_DAY["solar"] = 144` in `src/data.py`). His tasks, in order:
+1. `bash scripts/download_data.sh`; check shape (52560, 137).
+2. `notebooks/01_explore_solar.ipynb`, same structure as `01_explore_electricity.ipynb`.
+3. `python src/baselines.py --data solar --horizon 24` (slower than Electricity), then add a
+   Solar section to `results/experiments.md`.
+4. Log AI use in `AI_USAGE.md`. Dinesh must be able to explain every line himself.
+
+Early findings from a first look on 2026-10-19 (re-check them in the notebook):
+- The split is also a season split: train = days 0–219 (Jan–early Aug), test = days 292–365
+  (late Oct–Dec).
+- 55% of values are 0; at 49.5% of steps all plants are 0 (night). No constant plants.
+- Median autocorrelation 0.85 at 144 steps (1 day), only 0.32 at 24 steps (the horizon).
+- Every plant produces less in test: median test/train mean ratio 0.71 (range 0.62–0.83).
+  Strong distribution shift, so RevIN has more to gain on Solar than on Electricity.
+- No plant has its maximum in the test period, so the authors' scaling leaks nothing here.
+- AR per plant: validation RSE kept falling up to L = 512 (0.4064, below LSTNet-Skip's
+  published test RSE 0.4643). The run was stopped before the test score: re-run to confirm.
 
 ## Statistics
 - **10 seeds per model**, paired by seed (same seed → same init and batch order).
