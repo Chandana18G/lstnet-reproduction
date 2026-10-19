@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
-from data import load_raw, max_scale, split_targets
+from data import STEPS_PER_DAY, load_raw, max_scale, split_targets
 from metrics import corr, rse
 
 RESULTS = Path(__file__).resolve().parent.parent / "results"
@@ -81,7 +81,10 @@ def main():
     pred_dir.mkdir(parents=True, exist_ok=True)
 
     # Seasonal naive: only lags we would actually have observed (lag >= h).
-    for name, lag in [("naive: same hour yesterday", 24), ("naive: same hour last week", 168)]:
+    day = STEPS_PER_DAY[args.data]
+    naive = {h: "naive: last observed value", day: "naive: same time yesterday",
+             7 * day: "naive: same time last week"}      # for electricity, lag h = 24 = 1 day
+    for lag, name in sorted(naive.items()):
         if lag < h:
             continue
         v = scores(seasonal_naive(data, va, lag), va, data, scale)

@@ -16,6 +16,10 @@ FILES = {
     "electricity": "electricity.txt.gz",
     "solar": "solar_AL.txt.gz",
 }
+STEPS_PER_DAY = {
+    "electricity": 24,    # hourly
+    "solar": 144,         # every 10 minutes
+}
 
 
 def load_raw(name):
