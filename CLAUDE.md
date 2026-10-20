@@ -34,6 +34,8 @@ teammate's shared code, without AI help.
 - Never commit the datasets. `data/` is in `.gitignore`; use `scripts/download_data.sh`.
 - Training runs on free Google Colab GPU: save checkpoints regularly, keep runs resumable.
 - No `Co-Authored-By: Claude` lines in commits.
+- **Keep the code simple**: plain loops and functions she can explain alone; no clever tricks.
+- **Don't edit `AI_USAGE.md` until the end of the project**; it is written then.
 
 ## The story
 The paper argues the linear AR component is needed because neural networks cannot follow
@@ -173,9 +175,14 @@ CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 
   LSTNet now has to beat 0.0981 for the deep part to earn its complexity.
 - 2026-10-20: `src/model.py` (LSTNet-Skip) + `tests/test_model.py` (15 tests pass; our
   forward pass matches the authors' code translated line by line). `src/train.py`: authors'
-  training loop, resumable checkpoints (`last.pt`), `--no-ar` ablation flag, results in
-  `results/runs/<run>/metrics.json`. Smoke test on CPU OK (incl. resume).
+  training loop, resumable checkpoint `<checkpoint-dir>/<run>.pt`, `--no-ar` ablation flag,
+  result in `results/runs/<run>.json`. Smoke test on CPU OK (incl. resume); ~2 min/epoch on CPU.
   `notebooks/03_train_on_colab.ipynb`: full training on a Colab GPU, checkpoints on Drive.
+- 2026-10-20: `src/neuron_baseline.py`: first baseline with 3 seeds (course week-2 milestone),
+  test RSE 0.1043 ± 0.0003. Results table now has a Seeds column.
+- 2026-10-20: all code simplified for the defence (plain loops, fewer options, no
+  sliding_window_view / RNG-state resume); results unchanged, tests pass.
+  Hyperparameters other than window/skip/hid-skip are fixed in `model.py` defaults.
 - Next: first full LSTNet run on Colab (seed 0) and compare with 0.1007 and our AR 0.0981.
 - 2026-10-18: public repo github.com/Chandana18G/lstnet-reproduction created. Chandana chose
   **not** to add it to the portfolio or profile README yet: do that once LSTNet is reproduced.

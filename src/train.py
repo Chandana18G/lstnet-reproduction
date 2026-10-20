@@ -1,17 +1,14 @@
-"""Train LSTNet-Skip and evaluate it with the paper's metrics.
+"""Train LSTNet-Skip and test it with the paper's metrics, as in the authors' main.py.
 
-Follows the authors' main.py (github.com/laiguokun/LSTNet):
-  * loss = L1, summed, computed on de-normalised values (prediction * scale vs target * scale);
-  * Adam, learning rate 1e-3, gradients clipped to a total norm of 10;
-  * after every epoch: validation RSE; keep the weights with the best validation RSE;
-  * at the end: test RSE and CORR of those best weights.
+  * loss: L1, summed, on values in original units (prediction * scale vs target * scale)
+  * Adam with learning rate 0.001; gradients clipped to a total norm of 10
+  * after every epoch: validation RSE; keep the weights with the best validation RSE
+  * at the end: test RSE and CORR with those weights (the test set is used only here)
 
-Runs are resumable: after every epoch everything needed to continue is saved to
-<checkpoint dir>/<run name>/last.pt. Starting the same command again continues from there.
+After every epoch the run is saved to <checkpoint-dir>/<run name>.pt. If training stops
+(e.g. Colab disconnects), start the same command again and it continues from there.
 
-Example:
-  python src/train.py --data electricity --horizon 24 --skip 24 --seed 0
-  python src/train.py --data electricity --horizon 24 --seed 0 --epochs 1 --limit-batches 5   # smoke test
+Usage:  python src/train.py --data electricity --horizon 24 --skip 24 --seed 0
 """
 import argparse
 import json
@@ -28,34 +25,8 @@ from model import LSTNet
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def parse_args():
-    ap = argparse.ArgumentParser(description="Train LSTNet-Skip")
-    ap.add_argument("--data", default="electricity", choices=["electricity", "solar"])
-    ap.add_argument("--horizon", type=int, default=24)
-    ap.add_argument("--window", type=int, default=168)
-    ap.add_argument("--skip", type=int, default=24)
-    ap.add_argument("--hid-cnn", type=int, default=100)
-    ap.add_argument("--hid-rnn", type=int, default=100)
-    ap.add_argument("--hid-skip", type=int, default=5)
-    ap.add_argument("--kernel", type=int, default=6)
-    ap.add_argument("--ar-window", type=int, default=24)
-    ap.add_argument("--no-ar", action="store_true", help="ablation: remove the AR component")
-    ap.add_argument("--dropout", type=float, default=0.2)
-    ap.add_argument("--epochs", type=int, default=100)
-    ap.add_argument("--batch-size", type=int, default=128)
-    ap.add_argument("--lr", type=float, default=1e-3)
-    ap.add_argument("--clip", type=float, default=10.0)
-    ap.add_argument("--loss", default="l1", choices=["l1", "l2"])
-    ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--name", default=None, help="run name (default: built from the settings)")
-    ap.add_argument("--checkpoint-dir", default=str(ROOT / "checkpoints"),
-                    help="where last.pt is saved; on Colab point this to Google Drive")
-    ap.add_argument("--limit-batches", type=int, default=0, help="smoke test: batches per epoch")
-    return ap.parse_args()
-
-
 def predict(model, loader, scale, device):
-    """All predictions and targets of a loader, in original units (e.g. kWh)."""
+    """All predictions and targets of a loader, in original units."""
     model.eval()
     preds, trues = [], []
     with torch.no_grad():
@@ -66,91 +37,80 @@ def predict(model, loader, scale, device):
 
 
 def main():
-    args = parse_args()
-    name = args.name or (f"{args.data}_h{args.horizon}_lstnet{'_noar' if args.no_ar else ''}"
-                         f"_skip{args.skip}_seed{args.seed}")
-    run_dir = Path(args.checkpoint_dir) / name
-    out_dir = ROOT / "results" / "runs" / name
-    run_dir.mkdir(parents=True, exist_ok=True)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", default="electricity", choices=["electricity", "solar"])
+    parser.add_argument("--horizon", type=int, default=24)
+    parser.add_argument("--window", type=int, default=168)
+    parser.add_argument("--skip", type=int, default=24)
+    parser.add_argument("--hid-skip", type=int, default=5)       # authors: 5 electricity, 10 solar
+    parser.add_argument("--no-ar", action="store_true")          # ablation: LSTNet without AR
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--checkpoint-dir", default=str(ROOT / "checkpoints"))
+    args = parser.parse_args()
+
+    name = f"{args.data}_h{args.horizon}_lstnet_skip{args.skip}_seed{args.seed}"
+    if args.no_ar:
+        name = name.replace("lstnet", "lstnet_noar")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"run {name} on {device}")
 
-    # Data: same scaling, split and windows as every other model in the project
+    # Data and model
     data, scale = max_scale(load_raw(args.data))
     scale_t = torch.tensor(scale, dtype=torch.float32, device=device)
-    torch.manual_seed(args.seed)                     # -> same initial weights for this seed
-    gen = torch.Generator().manual_seed(args.seed)   # -> same batch order for this seed
-    train_dl, valid_dl, test_dl = make_loaders(data, args.window, args.horizon,
-                                               args.batch_size, generator=gen)
+    torch.manual_seed(args.seed)
+    train_dl, valid_dl, test_dl = make_loaders(data, args.window, args.horizon, seed=args.seed)
+    model = LSTNet(n=data.shape[1], window=args.window, skip=args.skip,
+                   hid_skip=args.hid_skip, use_ar=not args.no_ar).to(device)
+    optimiser = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    model = LSTNet(n=data.shape[1], window=args.window, hid_cnn=args.hid_cnn,
-                   hid_rnn=args.hid_rnn, hid_skip=args.hid_skip, kernel=args.kernel,
-                   skip=args.skip, ar_window=args.ar_window, dropout=args.dropout,
-                   use_ar=not args.no_ar).to(device)
-    optimiser = torch.optim.Adam(model.parameters(), lr=args.lr)
-    print(f"parameters: {sum(p.numel() for p in model.parameters()):,}")
+    # Continue from the checkpoint if there is one
+    checkpoint = Path(args.checkpoint_dir) / f"{name}.pt"
+    checkpoint.parent.mkdir(parents=True, exist_ok=True)
+    first_epoch, best_rse, best_epoch, best_weights = 1, float("inf"), 0, None
+    if checkpoint.exists():
+        saved = torch.load(checkpoint, map_location=device, weights_only=False)
+        model.load_state_dict(saved["model"])
+        optimiser.load_state_dict(saved["optimiser"])
+        first_epoch = saved["epoch"] + 1
+        best_rse, best_epoch, best_weights = saved["best_rse"], saved["best_epoch"], saved["best_weights"]
+        print(f"continuing after epoch {saved['epoch']}")
 
-    # Resume if a checkpoint of this run exists
-    start_epoch, best_valid, best_state, history = 1, float("inf"), None, []
-    ckpt_path = run_dir / "last.pt"
-    if ckpt_path.exists():
-        ck = torch.load(ckpt_path, map_location=device, weights_only=False)
-        model.load_state_dict(ck["model"])
-        optimiser.load_state_dict(ck["optimiser"])
-        gen.set_state(ck["generator"])
-        torch.set_rng_state(ck["torch_rng"])
-        start_epoch, best_valid = ck["epoch"] + 1, ck["best_valid"]
-        best_state, history = ck["best_state"], ck["history"]
-        print(f"resumed after epoch {ck['epoch']} (best valid RSE {best_valid:.4f})")
-
-    for epoch in range(start_epoch, args.epochs + 1):
-        t0 = time.time()
+    for epoch in range(first_epoch, args.epochs + 1):
+        start = time.time()
         model.train()
-        total, count = 0.0, 0
-        for i, (x, y) in enumerate(train_dl):
-            if args.limit_batches and i >= args.limit_batches:
-                break
+        for x, y in train_dl:
             x, y = x.to(device), y.to(device)
             optimiser.zero_grad()
-            err = model(x) * scale_t - y * scale_t           # error in original units
-            loss = err.abs().sum() if args.loss == "l1" else (err ** 2).sum()
+            loss = (model(x) * scale_t - y * scale_t).abs().sum()   # L1 in original units
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
             optimiser.step()
-            total += loss.item()
-            count += y.numel()
 
         pred, true = predict(model, valid_dl, scale, device)
-        v_rse, (v_corr, _) = rse(pred, true), corr(pred, true)
-        history.append({"epoch": epoch, "train_loss": total / count,
-                        "valid_rse": float(v_rse), "valid_corr": v_corr})
-        if v_rse < best_valid:
-            best_valid = float(v_rse)
-            best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
-        print(f"epoch {epoch:3d} | {time.time() - t0:5.1f}s | train loss {total / count:9.3f} | "
-              f"valid RSE {v_rse:.4f} | valid CORR {v_corr:.4f}"
-              f"{'  *' if best_valid == v_rse else ''}", flush=True)
+        valid_rse = rse(pred, true)
+        if valid_rse < best_rse:
+            best_rse, best_epoch = valid_rse, epoch
+            best_weights = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+        print(f"epoch {epoch:3d} | {time.time() - start:5.1f}s | valid RSE {valid_rse:.4f} | "
+              f"valid CORR {corr(pred, true)[0]:.4f} | best so far {best_rse:.4f} (epoch {best_epoch})",
+              flush=True)
 
-        torch.save({"epoch": epoch, "model": model.state_dict(),
-                    "optimiser": optimiser.state_dict(), "generator": gen.get_state(),
-                    "torch_rng": torch.get_rng_state(), "best_valid": best_valid,
-                    "best_state": best_state, "history": history, "args": vars(args)},
-                   ckpt_path)
+        torch.save({"model": model.state_dict(), "optimiser": optimiser.state_dict(),
+                    "epoch": epoch, "best_rse": best_rse, "best_epoch": best_epoch,
+                    "best_weights": best_weights}, checkpoint)
 
-    # Test the weights with the best validation RSE
-    model.load_state_dict(best_state)
+    # Test once, with the weights of the best validation epoch
+    model.load_state_dict(best_weights)
     pred, true = predict(model, test_dl, scale, device)
-    t_corr, dropped = corr(pred, true)
-    result = {"run": name, "best_valid_rse": best_valid, "test_rse": float(rse(pred, true)),
-              "test_corr": t_corr, "corr_dropped": dropped,
-              "best_epoch": min(history, key=lambda r: r["valid_rse"])["epoch"],
-              "args": vars(args), "history": history}
-    (out_dir / "metrics.json").write_text(json.dumps(result, indent=2))
-    np.save(out_dir / "test_predictions.npy", pred.astype(np.float32))
-    print(f"\nTEST  RSE {result['test_rse']:.4f} | CORR {t_corr:.4f} "
-          f"(best epoch {result['best_epoch']}, {dropped} series dropped from CORR)")
-    print(f"saved {out_dir / 'metrics.json'}")
+    test_rse, (test_corr, dropped) = rse(pred, true), corr(pred, true)
+    print(f"\nTEST  RSE {test_rse:.4f} | CORR {test_corr:.4f} (best epoch {best_epoch})")
+
+    result = {"run": name, "best_epoch": best_epoch, "valid_rse": float(best_rse),
+              "test_rse": float(test_rse), "test_corr": test_corr, "series_left_out_of_corr": dropped}
+    (ROOT / "results" / "runs").mkdir(parents=True, exist_ok=True)
+    (ROOT / "results" / "runs" / f"{name}.json").write_text(json.dumps(result, indent=2))
+    np.save(Path(args.checkpoint_dir) / f"{name}_test_predictions.npy", pred.astype(np.float32))
 
 
 if __name__ == "__main__":

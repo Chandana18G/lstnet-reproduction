@@ -1,4 +1,4 @@
-model,setting,params,valid_rse,valid_corr,test_rse,test_corr,corr_dropped
-naive: same hour yesterday,lag 24,0,0.1104,0.8543,0.1048,0.8667,1
-naive: same hour last week,lag 168,0,0.1463,0.8775,0.1874,0.8779,1
-"AR, one model per series",L = 256 (best on valid),82497,0.0978,0.9176,0.0981,0.9231,1
+model,valid_rse,valid_corr,test_rse,test_corr
+same time yesterday,0.1104,0.8543,0.1048,0.8667
+same time last week,0.1463,0.8775,0.1874,0.8779
+AR, L = 256,0.0978,0.9176,0.0981,0.9231

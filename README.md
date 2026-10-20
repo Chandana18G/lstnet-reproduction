@@ -32,10 +32,11 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 
 ```bash
 pip install -r requirements.txt
-bash scripts/download_data.sh      # downloads into data/ (not committed)
+bash scripts/download_data.sh      # both datasets into data/ (not committed); add 'electricity' or 'solar' for one
 jupyter notebook notebooks/
 pytest tests/                       # checks windows, split and metrics on toy arrays
-python src/baselines.py --data electricity --horizon 24   # naive + AR baselines (~8 min on CPU)
+python src/baselines.py --data electricity --horizon 24   # copy-the-past rules + AR (~8 min on CPU)
+python src/neuron_baseline.py --data electricity --horizon 24 --seeds 0 1 2   # first neural baseline
 python src/train.py --data electricity --horizon 24 --skip 24 --seed 0   # LSTNet (use a GPU)
 ```
 
@@ -48,7 +49,8 @@ scripts/download_data.sh   download both datasets into data/
 notebooks/                 data exploration, first network
 src/data.py                loading, scaling, split, windows
 src/metrics.py             RSE, CORR, per-window loss
-src/baselines.py           seasonal naive and AR (one model per series)
+src/baselines.py           copy-the-past rules and AR (one model per series)
+src/neuron_baseline.py     first neural baseline (one neuron), several seeds
 src/model.py               LSTNet-Skip
 src/train.py               training and evaluation, resumable
 tests/                     small hand-checkable tests

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from data import Windows, max_scale, split_targets, window_slice  # noqa: E402
+from data import Windows, max_scale, split_targets  # noqa: E402
 from metrics import corr, rse, window_losses  # noqa: E402
 
 
@@ -34,8 +34,10 @@ def test_split_is_chronological_and_complete():
 
 def test_first_window_starts_at_row_zero():
     q, h = 5, 3
+    data = np.arange(100, dtype=np.float32)[:, None]   # value = its time step
     tr, _, _ = split_targets(100, q, h)
-    assert window_slice(tr[0], q, h).start == 0
+    x, _ = Windows(data, tr, q, h)[0]
+    assert x[0, 0] == 0
 
 
 def test_max_scale_round_trip_and_zero_series():

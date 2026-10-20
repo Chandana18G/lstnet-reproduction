@@ -1,9 +1,6 @@
-"""Loading, scaling, splitting and windowing the LSTNet datasets.
+"""Load, scale, split and cut the data into windows, as in the authors' code.
 
-Follows the authors' code (github.com/laiguokun/LSTNet) so that our numbers are comparable:
-  * each series is divided by its maximum absolute value (their `normalize=2`);
-  * the split is 60% / 20% / 20% in time order, decided by the hour of the *target*;
-  * one example = q past steps of all series -> all series h steps after the window.
+One example = the last q steps of all series (input) and all series h steps later (target).
 """
 from pathlib import Path
 
@@ -12,84 +9,68 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-FILES = {
-    "electricity": "electricity.txt.gz",
-    "solar": "solar_AL.txt.gz",
-}
-STEPS_PER_DAY = {
-    "electricity": 24,    # hourly
-    "solar": 144,         # every 10 minutes
-}
+FILES = {"electricity": "electricity.txt.gz", "solar": "solar_AL.txt.gz"}
+STEPS_PER_DAY = {"electricity": 24, "solar": 144}      # hourly / every 10 minutes
 
 
 def load_raw(name):
-    """Return the raw (time steps, series) array, e.g. (26304, 321) for electricity."""
-    path = DATA_DIR / FILES[name]
-    if not path.exists():
-        raise FileNotFoundError(f"{path} is missing: run `bash scripts/download_data.sh` first")
-    return np.loadtxt(path, delimiter=",")
+    """The raw data: one row per time step, one column per series."""
+    return np.loadtxt(DATA_DIR / FILES[name], delimiter=",")
 
 
 def max_scale(raw):
-    """Divide every series by its max |value| over the whole period, as the authors do.
+    """Divide each series by its largest absolute value (the authors' normalize=2).
 
-    The max includes the test period (slight leakage, kept for comparability with the paper).
-    Returns the scaled float32 array and the per-series scale to undo it: raw = scaled * scale.
+    Returns the scaled data and the scale, so that raw = scaled * scale.
     """
     scale = np.abs(raw).max(axis=0)
-    scale[scale == 0] = 1.0          # an all-zero series would otherwise divide by zero
+    scale[scale == 0] = 1.0                            # avoid dividing by zero
     return (raw / scale).astype(np.float32), scale
 
 
-def split_targets(T, q, h, train=0.6, valid=0.2):
-    """Target time indices for train, validation and test.
+def split_targets(T, q, h):
+    """Target time steps for training (first 60%), validation (next 20%) and test (last 20%).
 
-    A target at index t needs the input rows t-h-q+1 .. t-h, so the first usable target is
-    q+h-1. Inputs of validation/test windows may reach back into the previous part: those rows
-    are in the past, so no information from the future is used.
+    The first training target is q + h - 1: the first one with q full input steps before it.
     """
-    train_end = int(train * T)
-    valid_end = int((train + valid) * T)
-    return (
-        np.arange(q + h - 1, train_end),
-        np.arange(train_end, valid_end),
-        np.arange(valid_end, T),
-    )
-
-
-def window_slice(t, q, h):
-    """Rows that form the input window for the target at index t."""
-    return slice(t - h - q + 1, t - h + 1)
+    train_end = int(0.6 * T)
+    valid_end = int(0.8 * T)
+    train = np.arange(q + h - 1, train_end)
+    valid = np.arange(train_end, valid_end)
+    test = np.arange(valid_end, T)
+    return train, valid, test
 
 
 class Windows(Dataset):
-    """PyTorch dataset of (x, y) pairs, cut out on demand to save memory.
-
-    x: (q, n) = q past steps of all n series;  y: (n,) = all series at the target step.
-    """
+    """Gives one (input, target) pair at a time, cut out of the data only when needed."""
 
     def __init__(self, data, targets, q, h):
         self.data = torch.from_numpy(data)
         self.targets = targets
-        self.q, self.h = q, h
+        self.q = q
+        self.h = h
 
     def __len__(self):
         return len(self.targets)
 
     def __getitem__(self, i):
         t = self.targets[i]
-        return self.data[window_slice(t, self.q, self.h)], self.data[t]
+        start = t - self.h - self.q + 1
+        end = t - self.h + 1                           # the newest input step is t - h
+        x = self.data[start:end]                       # shape (q, n)
+        y = self.data[t]                               # shape (n,)
+        return x, y
 
 
-def make_loaders(data, q, h, batch_size=128, seed=0, generator=None):
-    """Train/valid/test DataLoaders. Only training batches are shuffled (within training).
+def make_loaders(data, q, h, batch_size=128, seed=0):
+    """DataLoaders for training (shuffled), validation and test (in time order).
 
-    Pass your own `generator` to save and restore the shuffle order when resuming a run.
+    The seed fixes the shuffle order, so two models with the same seed see the same batches.
     """
-    tr, va, te = split_targets(len(data), q, h)
-    gen = generator or torch.Generator().manual_seed(seed)   # same seed -> same batch order
-    return (
-        DataLoader(Windows(data, tr, q, h), batch_size=batch_size, shuffle=True, generator=gen),
-        DataLoader(Windows(data, va, q, h), batch_size=512),
-        DataLoader(Windows(data, te, q, h), batch_size=512),
-    )
+    train, valid, test = split_targets(len(data), q, h)
+    shuffle_order = torch.Generator().manual_seed(seed)
+    train_dl = DataLoader(Windows(data, train, q, h), batch_size=batch_size, shuffle=True,
+                          generator=shuffle_order)
+    valid_dl = DataLoader(Windows(data, valid, q, h), batch_size=512)
+    test_dl = DataLoader(Windows(data, test, q, h), batch_size=512)
+    return train_dl, valid_dl, test_dl

@@ -9,8 +9,8 @@ and AR (least squares) have no randomness, so every seed gives the same number.
 
 | Model | Setting | Seeds | Trainable numbers | Valid RSE | Valid CORR | Test RSE | Test CORR | Source |
 |---|---|---|---|---|---|---|---|---|
-| Naive: same hour last week | lag 168 | none needed | 0 | 0.1463 | 0.8775 | 0.1874 | 0.8779 | `src/baselines.py` |
-| Naive: same hour yesterday | lag 24 | none needed | 0 | 0.1104 | 0.8543 | 0.1048 | 0.8667 | `src/baselines.py` |
+| Copy: same time last week | lag 168 | none needed | 0 | 0.1463 | 0.8775 | 0.1874 | 0.8779 | `src/baselines.py` |
+| Copy: same time yesterday | lag 24 | none needed | 0 | 0.1104 | 0.8543 | 0.1048 | 0.8667 | `src/baselines.py` |
 | **First baseline: one shared neuron** | q = 24, L1 loss, 60 epochs | 0, 1, 2 | 25 | 0.1051 ± 0.0002 | – | 0.1043 ± 0.0003 | 0.8702 ± 0.0001 | `src/neuron_baseline.py` |
 | **AR, one model per customer** | L = 256 chosen on valid from 2⁰…2⁹, least squares | none needed | 82,497 | **0.0978** | **0.9176** | **0.0981** | **0.9231** | `src/baselines.py` |
 | *Paper: AR* | – | – | – | – | – | *0.1054* | *0.8595* | Table 2 |
