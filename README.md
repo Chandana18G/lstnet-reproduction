@@ -15,12 +15,21 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 | Dataset | Owner | Size | Target (Table 2, horizon 24, LSTNet-Skip) |
 |---|---|---|---|
 | Electricity | Chandana Gurusiddappa | 26,304 hours × 321 customers | RSE 0.1007, CORR 0.9119 |
-| Solar-Energy | teammate | 52,560 × 10 min × 137 PV plants | RSE 0.4643, CORR 0.8870 |
+| Solar-Energy | Dinesh | 52,560 × 10 min × 137 PV plants | RSE 0.4643, CORR 0.8870 |
+
+## Who does what
+
+| | Chandana Gurusiddappa | Dinesh |
+|---|---|---|
+| Dataset | Electricity | Solar-Energy |
+| Reproduction | LSTNet-Skip on Electricity, horizon 24 | LSTNet-Skip on Solar-Energy, horizon 24 |
+| Own improvement | RevIN against level shifts, compared with linear models (AR, DLinear) | Skip length of one day (p = 144) with a longer window; RevIN for the winter test period |
+| Shared code | data loading, metrics, baselines, model, training (both review and can explain all of it) | |
 
 ## Status
 
 - [x] Data downloaded and explored (`notebooks/01_explore_electricity.ipynb`)
-- [x] First network: one shared neuron, test RSE 0.1032 / CORR 0.8698, one seed (`notebooks/02_first_network.ipynb`)
+- [x] First baseline: one shared neuron, test RSE 0.1043 ± 0.0003 over 3 seeds (`src/neuron_baseline.py`, `notebooks/02_first_network.ipynb`)
 - [x] Data windows, metrics (with tests), AR baseline: test RSE 0.0981 / CORR 0.9231, already better than the paper's LSTNet-Skip ([experiment table](results/experiments.md))
 - [x] LSTNet-Skip implemented and tested against the authors' code; training script with resumable checkpoints
 - [ ] LSTNet-Skip reproduced (full run on Colab: `notebooks/03_train_on_colab.ipynb`)
