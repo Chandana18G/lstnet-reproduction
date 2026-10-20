@@ -4,14 +4,17 @@ Test set = last 20% of the hours (5,261 targets × 321 customers). RSE lower is 
 higher is better; both computed in kWh. Customer #182 is constant in the test period and is
 left out of CORR (as in the authors' code).
 
-| Model | Setting | Trainable numbers | Valid RSE | Valid CORR | Test RSE | Test CORR | Source |
-|---|---|---|---|---|---|---|---|
-| Naive: same hour last week | lag 168 | 0 | 0.1463 | 0.8775 | 0.1874 | 0.8779 | `src/baselines.py` |
-| Naive: same hour yesterday | lag 24 | 0 | 0.1104 | 0.8543 | 0.1048 | 0.8667 | `src/baselines.py` |
-| One shared neuron | q = 24, L1 loss, 60 epochs, 1 seed | 25 | 0.1063 | 0.8578 | 0.1032 | 0.8698 | `notebooks/02_first_network.ipynb` |
-| **AR, one model per customer** | L = 256 chosen on valid from 2⁰…2⁹, least squares | 82,497 | **0.0978** | **0.9176** | **0.0981** | **0.9231** | `src/baselines.py` |
-| *Paper: AR* | – | – | – | – | *0.1054* | *0.8595* | Table 2 |
-| *Paper: LSTNet-Skip* | – | – | – | – | *0.1007* | *0.9119* | Table 2 |
+Models with a random start are run with 3 seeds (0, 1, 2) and shown as mean ± std. Naive rules
+and AR (least squares) have no randomness, so every seed gives the same number.
+
+| Model | Setting | Seeds | Trainable numbers | Valid RSE | Valid CORR | Test RSE | Test CORR | Source |
+|---|---|---|---|---|---|---|---|---|
+| Naive: same hour last week | lag 168 | none needed | 0 | 0.1463 | 0.8775 | 0.1874 | 0.8779 | `src/baselines.py` |
+| Naive: same hour yesterday | lag 24 | none needed | 0 | 0.1104 | 0.8543 | 0.1048 | 0.8667 | `src/baselines.py` |
+| **First baseline: one shared neuron** | q = 24, L1 loss, 60 epochs | 0, 1, 2 | 25 | 0.1051 ± 0.0002 | – | 0.1043 ± 0.0003 | 0.8702 ± 0.0001 | `src/neuron_baseline.py` |
+| **AR, one model per customer** | L = 256 chosen on valid from 2⁰…2⁹, least squares | none needed | 82,497 | **0.0978** | **0.9176** | **0.0981** | **0.9231** | `src/baselines.py` |
+| *Paper: AR* | – | – | – | – | – | *0.1054* | *0.8595* | Table 2 |
+| *Paper: LSTNet-Skip* | – | – | – | – | – | *0.1007* | *0.9119* | Table 2 |
 
 ## Notes
 
