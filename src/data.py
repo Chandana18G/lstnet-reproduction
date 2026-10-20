@@ -81,10 +81,13 @@ class Windows(Dataset):
         return self.data[window_slice(t, self.q, self.h)], self.data[t]
 
 
-def make_loaders(data, q, h, batch_size=128, seed=0):
-    """Train/valid/test DataLoaders. Only training batches are shuffled (within training)."""
+def make_loaders(data, q, h, batch_size=128, seed=0, generator=None):
+    """Train/valid/test DataLoaders. Only training batches are shuffled (within training).
+
+    Pass your own `generator` to save and restore the shuffle order when resuming a run.
+    """
     tr, va, te = split_targets(len(data), q, h)
-    gen = torch.Generator().manual_seed(seed)    # same seed -> same batch order: paired runs
+    gen = generator or torch.Generator().manual_seed(seed)   # same seed -> same batch order
     return (
         DataLoader(Windows(data, tr, q, h), batch_size=batch_size, shuffle=True, generator=gen),
         DataLoader(Windows(data, va, q, h), batch_size=512),

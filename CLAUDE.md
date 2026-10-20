@@ -64,11 +64,18 @@ scale shift directly (RevIN) make the deep part earn its complexity?
 5. AR highway: linear on last q_ar raw values per series, weights shared across series → h_L.
 6. Output: ŷ = h_D + h_L.
 
-### Settings: follow the authors' run script, not a new grid search
-To verify in github.com/laiguokun/LSTNet (`main.py`, README) before training:
-q = 168, hidCNN = hidRNN = 100, ω = 6, p = 24, hidSkip = 5, highway window 24, dropout 0.2,
-Adam lr 1e-3, batch 128, clip 10, 100 epochs, L1 loss, `--output_fun Linear`,
-**`--horizon 24` (the code default is 12)**. Keep the checkpoint with best validation RSE.
+### Settings: verified in the authors' code (2026-10-20)
+`ele.sh`: `python main.py --horizon 24 --data electricity.txt --output_fun Linear`, all else
+default: window 168, hidCNN = hidRNN = 100, CNN_kernel 6, skip 24, hidSkip 5, highway_window 24,
+dropout 0.2, Adam lr 1e-3, batch 128, clip 10 (total grad norm), 100 epochs, L1 loss, seed 54321.
+Model selection: keep the weights with the best validation RSE; report test at those weights.
+Details that matter (all reproduced in `src/train.py` / `src/model.py`):
+- The training loss is L1 **summed** and computed on **de-normalised** values
+  (output * scale vs Y * scale), so large customers dominate the loss.
+- Skip: pt = (window − kernel) / skip; the code takes the last pt·skip CNN steps. With
+  `--skip` parsed as float the original code gives pt = 6.75; we use floor = 6 (144 steps).
+- `solar.sh` sets `--hidSkip 10` and does **not** set `--horizon`, so it runs at horizon 12.
+  For horizon 24 on Solar, pass `--horizon 24 --hid-skip 10`.
 
 ### Paper vs code differences (document each in the report)
 - GRU activation: paper says ReLU in the candidate state; the code uses standard `nn.GRU` (tanh).
@@ -136,7 +143,8 @@ lstnet-reproduction/
 ├── scripts/download_data.sh
 ├── notebooks/01_explore_electricity.ipynb, 01_explore_solar.ipynb
 ├── src/data.py, model.py, metrics.py, train.py, baselines.py
-├── tests/test_data_and_metrics.py   (pytest tests/)
+├── tests/test_data_and_metrics.py, test_model.py   (pytest tests/)
+├── notebooks/03_train_on_colab.ipynb   (full training on a Colab GPU)
 └── results/
 ```
 CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 0`
@@ -163,7 +171,11 @@ CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 
   better than the paper's AR (0.1054) AND LSTNet-Skip (0.1007). Cross-checked with an
   independent implementation. Same hour yesterday: 0.1048. Table in `results/experiments.md`.
   LSTNet now has to beat 0.0981 for the deep part to earn its complexity.
-- Next: `src/model.py` (LSTNet-Skip, part by part with shape checks) and `src/train.py`;
-  first verify the run-script settings in github.com/laiguokun/LSTNet.
+- 2026-10-20: `src/model.py` (LSTNet-Skip) + `tests/test_model.py` (15 tests pass; our
+  forward pass matches the authors' code translated line by line). `src/train.py`: authors'
+  training loop, resumable checkpoints (`last.pt`), `--no-ar` ablation flag, results in
+  `results/runs/<run>/metrics.json`. Smoke test on CPU OK (incl. resume).
+  `notebooks/03_train_on_colab.ipynb`: full training on a Colab GPU, checkpoints on Drive.
+- Next: first full LSTNet run on Colab (seed 0) and compare with 0.1007 and our AR 0.0981.
 - 2026-10-18: public repo github.com/Chandana18G/lstnet-reproduction created. Chandana chose
   **not** to add it to the portfolio or profile README yet: do that once LSTNet is reproduced.

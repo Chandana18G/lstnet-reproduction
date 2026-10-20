@@ -9,3 +9,4 @@ datasets and the comparison models, and we can explain and change every line we 
 | 18.10.2026 | Checking our project plan against the paper and the course rules. Changes we adopted: 10 seeds instead of 5 and the Diebold–Mariano settings. |
 | 18.10.2026 | Drafting code for data loading, exploration, the first network, metrics with tests and the AR baseline. |
 | 18.10.2026 | Verifying the unexpected AR result with a second, independent implementation. |
+| 20.10.2026 | Drafting the LSTNet model and training code from the authors' published code, with a test that compares both forward passes. |
