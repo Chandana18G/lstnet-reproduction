@@ -8,7 +8,8 @@
 After every epoch the run is saved to <checkpoint-dir>/<run name>.pt. If training stops
 (e.g. Colab disconnects), start the same command again and it continues from there.
 
-Usage:  python src/train.py --data electricity --horizon 24 --skip 24 --seed 0
+Usage:  python src/train.py --data electricity --horizon 24 --model lstnet --seed 0
+        (models: lstnet, lstnet_revin = our improvement, lstnet_noar = ablation, dlinear)
 """
 import argparse
 import json
@@ -20,7 +21,7 @@ import torch
 
 from data import load_raw, make_loaders, max_scale
 from metrics import corr, rse
-from model import LSTNet
+from model import DLinear, LSTNet
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -43,25 +44,30 @@ def main():
     parser.add_argument("--window", type=int, default=168)
     parser.add_argument("--skip", type=int, default=24)
     parser.add_argument("--hid-skip", type=int, default=5)       # authors: 5 electricity, 10 solar
-    parser.add_argument("--no-ar", action="store_true")          # ablation: LSTNet without AR
+    parser.add_argument("--model", default="lstnet",
+                        choices=["lstnet", "lstnet_revin", "lstnet_noar", "dlinear"])
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--checkpoint-dir", default=str(ROOT / "checkpoints"))
     args = parser.parse_args()
 
-    name = f"{args.data}_h{args.horizon}_lstnet_skip{args.skip}_seed{args.seed}"
-    if args.no_ar:
-        name = name.replace("lstnet", "lstnet_noar")
+    name = f"{args.data}_h{args.horizon}_{args.model}_skip{args.skip}_seed{args.seed}"
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"run {name} on {device}")
 
-    # Data and model
+    # Data and model. All four models get the same data, loss, optimiser and selection rule.
     data, scale = max_scale(load_raw(args.data))
     scale_t = torch.tensor(scale, dtype=torch.float32, device=device)
     torch.manual_seed(args.seed)
     train_dl, valid_dl, test_dl = make_loaders(data, args.window, args.horizon, seed=args.seed)
-    model = LSTNet(n=data.shape[1], window=args.window, skip=args.skip,
-                   hid_skip=args.hid_skip, use_ar=not args.no_ar).to(device)
+    n = data.shape[1]
+    if args.model == "dlinear":
+        model = DLinear(window=args.window)
+    else:
+        model = LSTNet(n=n, window=args.window, skip=args.skip, hid_skip=args.hid_skip,
+                       use_ar=(args.model != "lstnet_noar"),
+                       use_revin=(args.model == "lstnet_revin"))
+    model = model.to(device)
     optimiser = torch.optim.Adam(model.parameters(), lr=0.001)
 
     # Continue from the checkpoint if there is one

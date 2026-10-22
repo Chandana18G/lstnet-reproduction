@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from model import LSTNet, skip_sequences  # noqa: E402
+from model import DLinear, LSTNet, RevIN, skip_sequences  # noqa: E402
 
 
 def test_output_shape():
@@ -80,3 +80,30 @@ def test_parameter_count_for_electricity():
     expected = (100 * 6 * 321 + 100) + 3 * (2 * 100 * 100 + 200) + 3 * (5 * 100 + 25 + 10) \
         + (100 + 24 * 5) * 321 + 321 + 25
     assert sum(p.numel() for p in m.parameters()) == expected
+
+
+def test_revin_round_trip():
+    # Normalising and then denormalising the last value of a window gives it back unchanged.
+    revin = RevIN(n=3)
+    x = torch.rand(4, 10, 3) * 50 + 7
+    z = revin.normalise(x)
+    assert torch.allclose(z.mean(dim=1), torch.zeros(4, 3), atol=1e-4)    # each window: mean 0
+    assert torch.allclose(revin.denormalise(z[:, -1, :]), x[:, -1, :], atol=1e-3)
+
+
+def test_revin_lstnet_runs_and_ignores_level():
+    # With RevIN, adding a constant to the input adds the same constant to the output.
+    torch.manual_seed(0)
+    m = LSTNet(n=5, window=48, hid_cnn=4, hid_rnn=4, skip=12, use_revin=True).eval()
+    x = torch.rand(3, 48, 5)
+    with torch.no_grad():
+        assert torch.allclose(m(x + 10.0), m(x) + 10.0, atol=1e-3)
+
+
+def test_dlinear_shape_and_trend():
+    m = DLinear(window=48)
+    x = torch.rand(6, 48, 4)
+    assert m(x).shape == (6, 4)
+    # The moving average of a constant series is the same constant
+    const = torch.full((1, 2, 48), 3.0)
+    assert torch.allclose(m.moving_average(const), const)
