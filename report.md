@@ -59,18 +59,40 @@
 
 ## 2 · The data (start this week)
 
-| | |
-|---|---|
-| Source and version | [where from, which version, download date] |
-| Licence | [licence, and what it allows] |
-| Size | [number of samples, size of each sample] |
-| Classes or targets | [list; class balance as counts or a bar chart] |
-| Splits | [training / validation / test sizes; **how** you split: random, grouped (by patient, place, …), by time; why] |
-| Preprocessing | [resizing, standardisation (statistics from the training set only), cleaning] |
-| Leakage checks | [duplicates between splits? the same patient/place/time in two splits? preprocessing fitted on all data? what you did about it] |
-| Shared with Biomedical Image Analysis? | [yes/no; if yes: which preparation was done for BIA, and say that it is not graded again here] |
+Both datasets are the preprocessed versions the authors published with the paper, so that our
+numbers are comparable with Table 2. Exploration: `notebooks/01_explore_electricity.ipynb`
+(Chandana) and `notebooks/01_explore_solar.ipynb` (Dinesh).
 
-[Two or three example samples per class, as a figure.]
+| | Electricity (Chandana) | Solar-Energy (Dinesh) |
+|---|---|---|
+| Source and version | Authors' repository `laiguokun/multivariate-time-series-data`, file `electricity/electricity.txt.gz` (last commit 7f402f1, 09.04.2017); downloaded 18.10.2026 with `scripts/download_data.sh`. Raw data: UCI *ElectricityLoadDiagrams20112014* (kWh every 15 min, 370 clients, 2011–2014). According to the authors' README they removed 2011 (some clients had no data yet), kept 321 clients and converted to hourly values. | Same repository, file `solar-energy/solar_AL.txt.gz`; downloaded 22.10.2026. Raw data: NREL *Solar Power Data for Integration Studies*, power output of PV plants in Alabama, 2006, here every 10 minutes. |
+| Licence | UCI: **CC BY 4.0**: use, share and adapt, also commercially, with attribution. The authors' copy has no licence file of its own; we cite both. | NREL's solar integration data are published openly for research. The authors' copy has no licence file of its own; we cite NREL and the authors. [Dinesh: confirm the exact terms on the NREL page.] |
+| Size | 26,304 time steps (hourly, 3 years) × 321 customers; no missing values. One example = 168 h × 321 customers (input) → 321 values (target). About 15,600 / 5,261 / 5,261 examples. | 52,560 time steps (10 min, 1 year) × 137 plants; no missing values. One example = 168 steps (28 h) × 137 plants → 137 values. About 31,300 / 10,512 / 10,512 examples. |
+| Classes or targets | Regression, no classes: the target is the consumption of every customer 24 h after the input window. Instead of class balance: customers differ in size by a factor of about **19,000** (mean 11 to 200,529 kWh); 1.1 % of values are 0; customer #182 is **0 for the whole test period**. Strong daily and weekly cycle (median autocorrelation 0.94 at 24 h, 0.91 at 168 h). | Regression: the output of every plant 4 h (24 steps) after the window. Plants differ in size by a factor of about 12 (mean 1.6 to 19.1 MW). **55.1 % of all values are 0** (night; at 49.5 % of steps all plants are 0); no constant plant. Strong daily cycle (median autocorrelation 0.85 at 144 steps = 1 day), weak at the horizon (0.32 at 24 steps). |
+| Splits | **By time**, 60 / 20 / 20 as in the paper (Sec. 4.3): train = hours 0–15,781 (658 days), validation = 15,782–21,042 (219 days), test = 21,043–26,303 (219 days). Each target belongs to exactly one part; input windows may reach back into the previous part (those hours are in the past). **Why:** forecasting predicts the future from the past; neighbouring hours are nearly identical, so a random split would leak information; and it is the paper's split. | **By time**, 60 / 20 / 20: train = days 0–219 (January–early August), validation = days 219–292, test = days 292–365 (late October–December). **Why:** as for Electricity, and neighbouring 10-minute steps are almost identical. The split is also a **season split**: the test period has shorter days (10.5 h of production per day vs 12.6 h in training). |
+| Preprocessing | No cleaning needed. Each customer is divided by its largest absolute value (the authors' `normalize=2`), so all values lie in [0, 1]; predictions are multiplied back for the metrics (kWh). This maximum is taken over the **whole** series, test included, as in the authors' code (see leakage). For the RevIN model, each input window is additionally normalised with its **own** mean and standard deviation (no information from other time steps). | The same per-plant scaling by the maximum. No cleaning; night zeros are kept, as in the paper. |
+| Leakage checks | (1) Split strictly by time; tested in `tests/test_data_and_metrics.py` (the newest input step is exactly 24 h before the target; no target in two parts). (2) The scaling uses the whole-series maximum: **53 of 321** customers reach their maximum in the test period, but the median ratio of whole-series to training-only maximum is **1.00**. We keep the authors' scaling for comparability and report it as a limitation. (3) All choices (best epoch, AR lag order) are made on validation; the test set is used **once** per final model. (4) No duplicates possible: each time step appears once. | (1)–(3) as for Electricity. **No** plant reaches its maximum in the test (winter) period; the median ratio of whole-series to training-only maximum is 1.00, so the scaling leaks nothing here. |
+| Shared with Biomedical Image Analysis? | No. | No. |
+
+**Distribution shift between training and test (important for our improvement):**
+Electricity: the median customer keeps its level (test/train mean ratio 0.99), but 24 customers
+change by more than 20 % and 8 by more than 50 %. Solar: **every** plant produces less in the
+test period (median ratio 0.71, range 0.62–0.83; 123 of 137 change by more than 20 %).
+
+![Electricity: autocorrelation of six customers](results/figures/electricity_autocorrelation.png)
+*Figure 1. Electricity: autocorrelation of six customers (training part); peaks every 24 h and at one week (cf. Fig. 3c of the paper).*
+
+![Electricity: change in level from training to test](results/figures/electricity_level_shift.png)
+*Figure 2. Electricity: change in each customer's mean load from training to test (log2 ratio; 0 = no change).*
+
+![Solar: one week of three plants](results/figures/solar_one_week.png)
+*Figure 3. Solar-Energy: one week of output of example plants: zero at night, daily peaks.*
+
+![Solar: autocorrelation](results/figures/solar_autocorrelation.png)
+*Figure 4. Solar-Energy: autocorrelation (training part); peaks every 144 steps (one day).*
+
+![Solar: change in level from training to test](results/figures/solar_level_shift.png)
+*Figure 5. Solar-Energy: every plant produces less in the test period (winter).*
 
 ## 3 · Reproducing the baseline (part of 15 %, and 25 % implementation)
 
