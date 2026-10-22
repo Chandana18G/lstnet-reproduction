@@ -1,0 +1,42 @@
+{
+  "electricity": {
+    "time_steps": 26304,
+    "window": 168,
+    "horizon": 24,
+    "train": {
+      "first_target": 191,
+      "last_target": 15781,
+      "examples": 15591
+    },
+    "valid": {
+      "first_target": 15782,
+      "last_target": 21042,
+      "examples": 5261
+    },
+    "test": {
+      "first_target": 21043,
+      "last_target": 26303,
+      "examples": 5261
+    }
+  },
+  "solar": {
+    "time_steps": 52560,
+    "window": 168,
+    "horizon": 24,
+    "train": {
+      "first_target": 191,
+      "last_target": 31535,
+      "examples": 31345
+    },
+    "valid": {
+      "first_target": 31536,
+      "last_target": 42047,
+      "examples": 10512
+    },
+    "test": {
+      "first_target": 42048,
+      "last_target": 52559,
+      "examples": 10512
+    }
+  }
+}
