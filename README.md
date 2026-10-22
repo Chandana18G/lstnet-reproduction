@@ -33,8 +33,9 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 - [x] Data windows, metrics (with tests), AR baseline: test RSE 0.0981 / CORR 0.9231, already better than the paper's LSTNet-Skip ([experiment table](results/experiments.md))
 - [x] LSTNet-Skip implemented and tested against the authors' code; training script with resumable checkpoints
 - [ ] LSTNet-Skip reproduced (full run on Colab: `notebooks/03_train_on_colab.ipynb`)
-- [ ] Improvement (RevIN), linear comparison (DLinear), ablation
-- [ ] Multi-seed runs and statistical tests
+- [x] Improvement (RevIN), linear comparison (DLinear), ablation: implemented and tested
+- [x] Statistics script: paired tests over seeds, Diebold–Mariano, Holm correction
+- [ ] Multi-seed runs on Colab (`notebooks/03_train_on_colab.ipynb` runs all of them)
 - [ ] Report
 
 ## Getting started
@@ -46,7 +47,8 @@ jupyter notebook notebooks/
 pytest tests/                       # checks windows, split and metrics on toy arrays
 python src/baselines.py --data electricity --horizon 24   # copy-the-past rules + AR (~8 min on CPU)
 python src/neuron_baseline.py --data electricity --horizon 24 --seeds 0 1 2   # first neural baseline
-python src/train.py --data electricity --horizon 24 --skip 24 --seed 0   # LSTNet (use a GPU)
+python src/train.py --data electricity --horizon 24 --model lstnet --seed 0   # or lstnet_revin, lstnet_noar, dlinear (use a GPU)
+python src/stats.py --data electricity --horizon 24 --pred-dir checkpoints     # table over seeds + statistical tests
 ```
 
 Data source: [laiguokun/multivariate-time-series-data](https://github.com/laiguokun/multivariate-time-series-data).
@@ -62,6 +64,8 @@ src/baselines.py           copy-the-past rules and AR (one model per series)
 src/neuron_baseline.py     first neural baseline (one neuron), several seeds
 src/model.py               LSTNet-Skip
 src/train.py               training and evaluation, resumable
+src/stats.py               results over seeds and statistical tests
+report/                    presentation and report outlines
 tests/                     small hand-checkable tests
 results/experiments.md     experiment table
 results/figures/           plots used in the report

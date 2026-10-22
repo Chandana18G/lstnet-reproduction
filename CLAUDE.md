@@ -183,6 +183,11 @@ CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 
 - 2026-10-20: all code simplified for the defence (plain loops, fewer options, no
   sliding_window_view / RNG-state resume); results unchanged, tests pass.
   Hyperparameters other than window/skip/hid-skip are fixed in `model.py` defaults.
-- Next: first full LSTNet run on Colab (seed 0) and compare with 0.1007 and our AR 0.0981.
+- 2026-10-22: RevIN + DLinear in `src/model.py`; `train.py --model lstnet|lstnet_revin|lstnet_noar|dlinear`;
+  `src/stats.py` (table over seeds, paired t-test/Wilcoxon, Diebold-Mariano, Holm); 21 tests pass.
+  `notebooks/03_train_on_colab.ipynb` now trains all 4 models x seeds 0-9 (resumable, skips
+  finished runs) and runs the statistics. `report/` has the 29.10 slide outline and report outline.
+- Next: Chandana runs notebook 03 on Colab (first: seed 0 LSTNet to time it and check vs 0.1007);
+  Dinesh does Solar. Then fill the slides and write the report.
 - 2026-10-18: public repo github.com/Chandana18G/lstnet-reproduction created. Chandana chose
   **not** to add it to the portfolio or profile README yet: do that once LSTNet is reproduced.
