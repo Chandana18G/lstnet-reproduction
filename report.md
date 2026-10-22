@@ -99,25 +99,39 @@
 
 ## 3 · Reproducing the baseline (part of 15 %, and 25 % implementation)
 
-**The recipe:** read the paper (or its code) like a recipe. One row per ingredient; leave nothing empty: if the paper does not say it, write "not stated" and what you chose.
+**The recipe**, read from the paper and the authors' code (github.com/laiguokun/LSTNet: `main.py`,
+`models/LSTNet.py`, `utils.py` and the run scripts `ele.sh`, `solar.sh`). Our implementation:
+`src/data.py`, `src/model.py`, `src/train.py`.
 
 | | The paper says | Where (page, table, code) | What we use |
 |---|---|---|---|
-| Data: version, split | | | |
-| Model: layers, sizes, pretrained? | | | |
-| Training: optimiser, learning rate, schedule | | | |
-| Training: epochs, batch size | | | |
-| Augmentation and preprocessing | | | |
-| Metric, and how it was averaged | | | |
+| Data: version, split | Electricity: 321 clients, hourly, 2012–2014. Solar-Energy: 137 PV plants, 10 min, 2006. Split 60 / 20 / 20 in chronological order. | Sec. 4.3 (p. 99), Table 1 (p. 100); `utils.py` | The authors' published files (section 2); the same 60 / 20 / 20 split by time, decided by the target time step. |
+| Model: layers, sizes, pretrained? | LSTNet-Skip: convolution → GRU + skip-GRU → dense, plus a linear AR component. Sizes chosen by grid search: window q from 2⁰…2⁹, CNN/GRU hidden {50, 100, 200}, skip-GRU hidden {20, 50, 100}, skip p = 24 (Electricity), tuned 2…64 (Solar). Not pretrained. CNN filter width, AR window: **not stated**. | Sec. 3.2–3.6 (p. 97–98), Sec. 4.4 (p. 100) | The authors' run scripts: window 168, CNN 100 filters of width 6, GRU 100, skip 24, skip-GRU 5 (Electricity) / 10 (Solar), AR window 24, dropout 0.2, no output activation. 325,871 parameters for Electricity. A test shows our forward pass equals the authors' code (`tests/test_model.py`). Not pretrained. |
+| Training: optimiser, learning rate, schedule | Adam. Learning rate and schedule **not stated**. Dropout 0.1 or 0.2. Loss: L1 or squared, chosen on validation. | Sec. 3.7–3.8 (p. 98–99), Sec. 4.4 (p. 100); code: `main.py` | Adam, learning rate 0.001, no schedule, gradient clipping to norm 10, dropout 0.2, L1 loss (the code's default) **summed and computed in original units** (prediction × scale vs target × scale), as in `main.py`. |
+| Training: epochs, batch size | **Not stated.** | code: `main.py` defaults | 100 epochs, batch size 128; we keep the weights of the epoch with the best validation RSE (as `main.py`). |
+| Augmentation and preprocessing | No augmentation. Normalisation **not stated** in the paper. | code: `utils.py` (`normalize=2`) | No augmentation. Each series divided by its maximum absolute value over the whole series (as the code); see section 2 for the leak this causes and its size. |
+| Metric, and how it was averaged | RSE: squared error pooled over all series and test steps, relative to the spread of the test targets. CORR: Pearson correlation per series, averaged over series. | Sec. 4.2, Eq. 10–11 (p. 99); code: `evaluate()` in `main.py` | The same, in original units (`src/metrics.py`). Series with zero variance in the test targets are left out of CORR, as in the code (Electricity: 1 customer; Solar: none). |
 
-- **Setup:** [framework and versions; anything not in the table]
-- **What the paper did not say,** and what you chose instead: [list, from the "not stated" rows]
+- **Setup:** Python and PyTorch (laptop: Python 3.14, PyTorch 2.12 on CPU; Colab: [PyTorch version] on an NVIDIA T4 GPU), NumPy, SciPy. Electricity, horizon 24, uses the settings of the authors' `ele.sh`; Solar uses `solar.sh` but with horizon 24 (see below). 10 seeds per model (0–9); same seed = same initial weights and batch order.
+- **What the paper did not say,** and what we chose instead:
+  - learning rate, epochs, batch size, gradient clipping, CNN filter width, AR window, normalisation → the authors' code defaults (0.001, 100, 128, 10, 6, 24, divide by maximum);
+  - the final hyperparameters of the grid search → the authors' run scripts; we do **not** repeat the grid search;
+  - how many runs the reported number is based on → not stated (probably one run); we report mean ± standard deviation over 10 seeds;
+  - the training loss is summed in original units in the code (not mentioned in the paper) → we do the same.
+- **Where paper and code disagree:**
+  - the paper uses ReLU in the GRU's candidate state (Sec. 3.3, p. 98); the code uses the standard GRU (tanh) → we follow the code;
+  - skip sequence length (q − ω) / p = 6.75 in the code (float) → we use the whole number 6 (the last 144 CNN steps);
+  - `solar.sh` does not set the horizon, so it runs at horizon 12, but Table 2 reports horizon 24 → we use 24;
+  - the paper's grid includes an AR regularisation coefficient {0.1, 1, 10}; the code has none → no regularisation.
 
-| | Paper | Ours (mean ± spread, n seeds) |
+| Test set, horizon 24 | Paper (Table 2) | Ours (mean ± std, 10 seeds) |
 |---|---|---|
-| [metric] | [value] | [value] |
+| Electricity, RSE | 0.1007 | [from `results/stats_electricity_h24.md`] |
+| Electricity, CORR | 0.9119 | [ ] |
+| Solar-Energy, RSE | 0.4643 | [from `results/stats_solar_h24.md`] |
+| Solar-Energy, CORR | 0.8870 | [ ] |
 
-[Why the numbers differ, if they do: data version, preprocessing, compute, missing details. A difference that you explain is a result, too.]
+[Why the numbers differ, if they do: to be written when all 10 seeds are finished. Points to check: one run in the paper vs mean of 10 seeds; GRU activation (tanh vs ReLU); skip length rounding; horizon of the Solar script.]
 
 ## 4 · Your improvement (20 %)
 
