@@ -22,5 +22,5 @@ Each section says what goes in and where the material already is.
 6. **Discussion**: why our AR is stronger than the paper's (longer lag); what the ablation says
    about the paper's claim; when RevIN helps (Solar winter shift) and when not; limitations
    (one horizon, free Colab, authors' scaling leak).
-7. **Conclusion**: one paragraph.
-8. **AI usage**: from `AI_USAGE.md` (written at the end).
+7. **Conclusion**: Lai et al. conclude that LSTNet beats classical and neural baselines on data with clear repeating patterns, such as the daily cycle of electricity use and of solar power. It does this by combining a CNN and GRUs for complex patterns with a simple linear part that follows changes in scale. At horizon 24 they report RSE 0.1007 on Electricity and 0.4643 on Solar-Energy. We test whether this deep part still pays off on both datasets when compared with well-tuned linear models.
+8. **AI usage**: from `AI_USAGE.md` (reporting)
