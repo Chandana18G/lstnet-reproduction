@@ -24,3 +24,6 @@ results/predictions/
 # Personal study notes (not part of the hand-in)
 study/
 results/runs/*/test_predictions.npy
+
+# Personal Claude Code notes (e.g. Dinesh's Solar brief)
+CLAUDE.local.md

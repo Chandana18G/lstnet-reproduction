@@ -116,9 +116,13 @@ Solar runs on Dinesh's machine, not Chandana's laptop (7.7 GB RAM). The shared c
 supports Solar (`STEPS_PER_DAY["solar"] = 144` in `src/data.py`). His tasks, in order:
 1. `bash scripts/download_data.sh`; check shape (52560, 137).
 2. `notebooks/01_explore_solar.ipynb`, same structure as `01_explore_electricity.ipynb`.
-3. `python src/baselines.py --data solar --horizon 24` (slower than Electricity), then add a
-   Solar section to `results/experiments.md`.
-4. Log AI use in `AI_USAGE.md`. Dinesh must be able to explain every line himself.
+3. `python src/baselines.py --data solar --horizon 24` and
+   `python src/neuron_baseline.py --data solar --horizon 24 --seeds 0 1 2` (slow on CPU), then add
+   a Solar section to `results/experiments.md`.
+4. LSTNet + comparisons on Colab: `notebooks/03_train_on_colab.ipynb` with `DATA = "solar"`
+   (adds `--hid-skip 10`; horizon 24 as in the paper's table).
+5. Don't edit `AI_USAGE.md` (written together at the end). Dinesh must be able to explain every
+   line himself. His personal brief: `CLAUDE.local.md` (not in git; Chandana sends it).
 
 Early findings from a first look on 2026-10-19 (re-check them in the notebook):
 - The split is also a season split: train = days 0–219 (Jan–early Aug), test = days 292–365
