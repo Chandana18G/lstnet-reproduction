@@ -191,6 +191,11 @@ CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 
   `src/stats.py` (table over seeds, paired t-test/Wilcoxon, Diebold-Mariano, Holm); 21 tests pass.
   `notebooks/03_train_on_colab.ipynb` now trains all 4 models x seeds 0-9 (resumable, skips
   finished runs) and runs the statistics. `report/` has the 29.10 slide outline and report outline.
+- 2026-10-22 (Dinesh): Solar tasks 1–3 done. `notebooks/01_explore_solar.ipynb` confirms the early
+  findings. Solar baselines in `results/experiments.md`: AR per plant L = 512 test RSE 0.5247 /
+  CORR 0.8462 (paper AR 0.8699, LSTNet-Skip 0.4643), so on Solar LSTNet must beat 0.5247;
+  one neuron (q = 24) 0.8909 ± 0.0035. All 4 models pass a 1-epoch CPU check on Solar
+  (~100 s/epoch for LSTNet on CPU). Next: Dinesh runs notebook 03 with `DATA = "solar"`.
 - Next: Chandana runs notebook 03 on Colab (first: seed 0 LSTNet to time it and check vs 0.1007);
   Dinesh does Solar. Then fill the slides and write the report.
 - 2026-10-18: public repo github.com/Chandana18G/lstnet-reproduction created. Chandana chose

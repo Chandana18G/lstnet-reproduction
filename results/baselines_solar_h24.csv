@@ -1,0 +1,4 @@
+model,valid_rse,valid_corr,test_rse,test_corr
+same time yesterday,0.5099,0.8648,0.6113,0.8030
+same time last week,0.5513,0.8441,0.7445,0.7124
+AR, L = 512,0.4064,0.9099,0.5247,0.8462

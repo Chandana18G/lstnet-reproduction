@@ -34,3 +34,43 @@ Validation RSE of AR by lag order L:
 | L | 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | valid RSE | 0.1094 | 0.1089 | 0.1088 | 0.1087 | 0.1083 | 0.1033 | 0.1019 | 0.1000 | **0.0978** | 0.0983 |
+
+# Experiment table: Solar-Energy, horizon 24
+
+Test set = last 20% of the steps (10,512 targets × 137 plants, late October to December).
+One step = 10 minutes, so horizon 24 = 4 hours ahead and one day = 144 steps. RSE lower is
+better, CORR higher is better; both computed in MW. No plant is constant in the test period,
+so none is left out of CORR.
+
+| Model | Setting | Seeds | Trainable numbers | Valid RSE | Valid CORR | Test RSE | Test CORR | Source |
+|---|---|---|---|---|---|---|---|---|
+| Copy: same time last week | lag 1008 | none needed | 0 | 0.5513 | 0.8441 | 0.7445 | 0.7124 | `src/baselines.py` |
+| Copy: same time yesterday | lag 144 | none needed | 0 | 0.5099 | 0.8648 | 0.6113 | 0.8030 | `src/baselines.py` |
+| **First baseline: one shared neuron** | q = 24, L1 loss, 60 epochs | 0, 1, 2 | 25 | 0.8689 ± 0.0038 | – | 0.8909 ± 0.0035 | 0.4729 ± 0.0059 | `src/neuron_baseline.py` |
+| **AR, one model per plant** | L = 512 chosen on valid from 2⁰…2⁹, least squares | none needed | 70,281 | **0.4064** | **0.9099** | **0.5247** | **0.8462** | `src/baselines.py` |
+| *Paper: AR* | – | – | – | – | – | *0.8699* | – | Table 2 |
+| *Paper: LSTNet-Skip* | – | – | – | – | – | *0.4643* | *0.8870* | Table 2 |
+
+## Notes
+
+* Our AR is far better than the paper's AR (0.5247 vs 0.8699) but, unlike on Electricity,
+  worse than the paper's LSTNet-Skip (0.4643). So on Solar the deep part may really help.
+* Why our AR is so much better than the paper's: the lag. Validation RSE falls sharply between
+  L = 64 (0.6133) and L = 128 (0.4428). From L = 121 on, the window reaches 144 steps back
+  (L + h − 1 ≥ 144), i.e. the same time yesterday (median autocorrelation 0.85 at one day,
+  only 0.32 at our horizon of 24 steps). The paper does not report which L its AR used.
+* L = 512 is the largest value in the grid and validation RSE was still falling, so a longer
+  lag might be slightly better. We keep the paper's grid.
+* Validation RSE (0.41) is much better than test RSE (0.52) for every model. The test period is
+  late autumn and early winter: every plant produces less (median 0.71 of its training level,
+  see `notebooks/01_explore_solar.ipynb`) and days are shorter and cloudier. This is the
+  distribution shift that RevIN is meant to handle.
+* The one shared neuron sees only q = 24 steps (4 hours), so it cannot see the daily cycle; it
+  is close to the paper's AR. On Electricity the same q = 24 is a full day, which is why the
+  neuron did well there.
+
+Validation RSE of AR by lag order L:
+
+| L | 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| valid RSE | 0.9221 | 0.8903 | 0.8601 | 0.8111 | 0.7738 | 0.7463 | 0.6133 | 0.4428 | 0.4265 | **0.4064** |
