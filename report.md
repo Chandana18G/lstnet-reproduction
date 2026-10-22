@@ -1,7 +1,7 @@
 # Reproducing LSTNet on Electricity and Solar-Energy, and testing whether the deep part earns its complexity
 
 **Deep Learning · M.Sc. Applied Data Science and AI · SRH University Munich · Winter semester 2026/27**
-**Author(s):** Chandana Gurusiddappa (Electricity), Dinesh [last name] (Solar-Energy) · **Repository:** https://github.com/Chandana18G/lstnet-reproduction · **Date:** [hand-in date]
+**Author(s):** Chandana Gurusiddappa (Electricity), Dineshkumar Swaminathan (Solar-Energy) · **Repository:** https://github.com/Chandana18G/lstnet-reproduction · **Date:** [hand-in date]
 
 ---
 
