@@ -200,3 +200,10 @@ CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 
   Dinesh does Solar. Then fill the slides and write the report.
 - 2026-10-18: public repo github.com/Chandana18G/lstnet-reproduction created. Chandana chose
   **not** to add it to the portfolio or profile README yet: do that once LSTNet is reproduced.
+- 2026-10-28: Professor's feedback (27.10): run LSTNet itself; check the AR number (Eq. 10 RSE,
+  horizon 3 vs paper 0.0995, train-only scaling, window choice) -> `src/check_ar.py`,
+  `results/ar_checks_electricity.md`; one improvement per person with a hypothesis sentence
+  (Chandana: RevIN on Electricity, written in report section 4; comparisons: AR, DLinear;
+  LSTNet without AR = the paper's ablation = reproduction); licence: name UCI CC BY 4.0 / NREL,
+  authors' code MIT. **Chandana works on Electricity only; Dinesh does Solar on his own.**
+  All 40 Electricity Colab runs finished 28.10; statistics (cell 6) pending.

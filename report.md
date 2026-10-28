@@ -64,7 +64,7 @@
 | | |
 |---|---|
 | Source and version | Authors' repository `laiguokun/multivariate-time-series-data`, file `electricity/electricity.txt.gz` (last commit 7f402f1, 09.04.2017), downloaded 18.10.2026 with `scripts/download_data.sh`. Raw data: UCI *ElectricityLoadDiagrams20112014*; the authors removed 2011, kept 321 clients and converted to hourly values (their README; paper Sec. 4.3). |
-| Licence | UCI: CC BY 4.0. Allows use, sharing and adaptation, also commercially, with attribution. The authors' copy has no licence file of its own; we cite both. |
+| Licence | The authors' data repository has **no licence file**, so we name the original source: UCI *ElectricityLoadDiagrams20112014*, licence **CC BY 4.0** (use, share and adapt, also commercially, with attribution). The authors' code (github.com/laiguokun/LSTNet), which we read for the settings, is under the **MIT licence**. |
 | Size | 26,304 hourly time steps (2012–2014) × 321 customers, no missing values. One sample = 168 hours × 321 customers (input) → 321 values (target). |
 | Classes or targets | Regression, no classes: the target is the consumption (kWh) of every customer 24 hours after the input window. Instead of class balance: customer means range from 11 to 200,529 kWh (factor ~19,000); 1.1 % of values are 0; customer #182 is 0 for the whole test period (left out of CORR). Strong daily and weekly cycle (median autocorrelation 0.94 at 24 h, 0.91 at 168 h). |
 | Splits | By time, 60 / 20 / 20 as in the paper: training hours 0–15,781 (~15,600 samples), validation 15,782–21,042 (5,261), test 21,043–26,303 (5,261). Why: forecasting predicts the future from the past; neighbouring hours are almost identical, so a random split would leak information; and it is the paper's split, so the numbers are comparable. |
@@ -135,9 +135,31 @@
 
 ## 4 · Your improvement (20 %)
 
-- **Idea:** [what you change]
-- **Why it should help:** [the reasoning: a weakness of the baseline you observed, a method from the course or from another paper]
-- **Expected effect:** [what you expect to see, and on which metric]
+### Electricity (Chandana): LSTNet + RevIN
+
+- **Idea:** add reversible instance normalisation (RevIN; Kim et al., ICLR 2022) to LSTNet-Skip.
+  Before the network, each customer's input window is shifted to mean 0 and scaled to standard
+  deviation 1, using only that window; after the network, the prediction is moved back to the
+  window's own mean and scale. Two learnable numbers per customer (scale and shift) are added.
+  Everything else (data, split, settings, training) stays the same as in the reproduction.
+- **Why it should help:** the paper itself names the weakness: the neural part of LSTNet "is
+  not sensitive to the scale of inputs" when the level of a series changes, which is why it adds
+  the linear AR part (Sec. 3.6, Sec. 4.6, Fig. 6). RevIN removes the level directly, so the
+  network only has to learn the shape of the daily and weekly pattern. Our data show such level
+  changes: between training and test, 24 of 321 customers change their mean load by more than
+  20 %, 8 by more than 50 %, and one drops to zero (section 2, Figure 2).
+- **Expected effect:** **Because** the level of some customers drifts between training and test
+  (Figure 2), **we expect** RevIN **to improve** the test RSE of LSTNet-Skip at horizon 24
+  **by about** 1–3 % (for example from about 0.101 to about 0.099), measured as the mean over
+  10 seeds. Because the median customer keeps its level (test/train ratio 0.99), we expect only
+  a small gain, and CORR to stay about the same.
+- **Comparisons (not improvements):** our AR baseline (one linear model per customer) and
+  DLinear (Zeng et al., AAAI 2023), a strong simple linear model, trained with the same budget.
+  "LSTNet without AR" is the paper's own ablation (LSTw/oAR, Fig. 5) and counts as reproduction.
+
+### Solar-Energy (Dinesh)
+
+[Dinesh writes his improvement here, with the same sentence: Because … we expect … to improve … by about …]
 
 ## 5 · Experiments (part of 20 % and 15 %)
 
