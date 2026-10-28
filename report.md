@@ -139,6 +139,28 @@ one run (seed and number of runs not stated), the code uses tanh in the GRU wher
 writes ReLU, and the skip length is rounded (6 instead of 6.75 steps). Results:
 `results/stats_electricity_h24.md`; training: `notebooks/03_train_on_colab.ipynb`.
 
+**Checks of our AR baseline (Electricity)** (professor's feedback; `src/check_ar.py`,
+`results/ar_checks_electricity.md`). Our AR (one linear model per customer, least squares) reaches
+test RSE 0.0981, the paper's AR 0.1054. We checked four possible reasons:
+
+1. *RSE as in Eq. 10:* our formula and the authors' code formula give the same value on the same
+   predictions (0.098090 both): original units, pooled over all customers and test hours,
+   divided by the spread of the whole test set.
+2. *Off-by-one in the horizon:* a unit test checks that the newest input is exactly h steps before
+   the target. Our AR is better than the paper's at **every** horizon (h = 3: 0.0818 vs 0.0995;
+   h = 6: 0.0913 vs 0.1035; h = 12: 0.0957 vs 0.1050; h = 24: 0.0981 vs 0.1054), so the gap is
+   not a shifted horizon.
+3. *Scaling on the training part only:* gives exactly the same test RSE (0.098090); a least-squares
+   fit per customer does not change when the customer is multiplied by a constant.
+4. *The window:* this explains the gap. With short windows (L = 1 to 16 hours) our AR reaches test
+   RSE 0.1035–0.1042 at horizon 24, within 1–2 % of the paper's 0.1054. Only windows of 128 hours
+   or more, which see the same hour on several previous days, bring it down to 0.098. We choose
+   L on validation from the paper's grid 1 … 512 (L = 256); the paper does not report which window
+   its AR used.
+
+So the gap is explained by the window length, not by a bug: a well-tuned linear model with a long
+window is stronger than the AR baseline in the paper.
+
 [Solar-Energy: Dinesh.]
 
 ## 4 · Your improvement (20 %)
