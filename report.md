@@ -126,12 +126,20 @@
 
 | Test set, horizon 24 | Paper (Table 2) | Ours (mean ± std, 10 seeds) |
 |---|---|---|
-| Electricity, RSE | 0.1007 | [from `results/stats_electricity_h24.md`] |
-| Electricity, CORR | 0.9119 | [ ] |
+| Electricity, RSE | 0.1007 | **0.1008 ± 0.0018** |
+| Electricity, CORR | 0.9119 | 0.9070 ± 0.0062 |
 | Solar-Energy, RSE | 0.4643 | [from `results/stats_solar_h24.md`] |
 | Solar-Energy, CORR | 0.8870 | [ ] |
 
-[Why the numbers differ, if they do: to be written when all 10 seeds are finished. Points to check: one run in the paper vs mean of 10 seeds; GRU activation (tanh vs ReLU); skip length rounding; horizon of the Solar script.]
+**Electricity: reproduced.** Our mean test RSE over 10 seeds (0.1008) is within 0.0001 of the
+paper's 0.1007, well inside one standard deviation (0.0018). CORR is 0.0049 lower than published
+(0.9070 vs 0.9119); the paper's number lies within one standard deviation of ours (0.0062). The
+remaining small CORR gap can come from details we could not match exactly: the paper reports
+one run (seed and number of runs not stated), the code uses tanh in the GRU where the paper
+writes ReLU, and the skip length is rounded (6 instead of 6.75 steps). Results:
+`results/stats_electricity_h24.md`; training: `notebooks/03_train_on_colab.ipynb`.
+
+[Solar-Energy: Dinesh.]
 
 ## 4 · Your improvement (20 %)
 
@@ -165,13 +173,44 @@
 
 - **Design:** one change at a time; the same data splits, the same budget; at least three seeds per setting.
 
-| Setting | [metric] mean | ± spread | seeds |
-|---|---|---|---|
-| baseline | | | |
-| + [change 1] | | | |
-| + [change 2] | | | |
+**Electricity, horizon 24, test set** (each neural model: 10 seeds, the same splits, settings and
+budget of 100 epochs; the best epoch is chosen on validation):
 
-- **Statistical comparison:** [test and result, for example a paired test over seeds or folds (Session 31)]
+| Setting | Test RSE mean | ± spread (std) | Test CORR mean ± std | seeds |
+|---|---|---|---|---|
+| baseline: LSTNet-Skip (reproduction) | 0.1008 | 0.0018 | 0.9070 ± 0.0062 | 10 |
+| + RevIN (our improvement) | 0.1060 | 0.0014 | 0.9172 ± 0.0010 | 10 |
+| − AR component (paper's ablation LSTw/oAR) | 0.1476 | 0.0096 | 0.8617 ± 0.0043 | 10 |
+| DLinear (comparison) | 0.1035 | 0.0003 | 0.9052 ± 0.0003 | 10 |
+| AR, one model per customer (comparison, least squares) | 0.0981 | – (deterministic) | 0.9231 | – |
+| *Paper: LSTNet-Skip* | *0.1007* | – | *0.9119* | – |
+
+- **Statistical comparison** (`src/stats.py`; Holm-corrected over the four comparisons with LSTNet):
+  - *Over seeds:* paired t-test and Wilcoxon signed-rank test, seed k against seed k (same seed =
+    same initial weights and batch order).
+  - *Over test hours:* Diebold–Mariano test on the squared error per hour (summed over customers),
+    using the forecast averaged over the 10 seeds; Newey–West variance with lag h − 1 = 23 and the
+    Harvey–Leybourne–Newbold correction.
+
+  | Model vs LSTNet | Mean RSE difference | Paired t-test p (Holm) | Wilcoxon p (raw) | DM statistic | DM p (Holm) |
+  |---|---|---|---|---|---|
+  | + RevIN | +0.0052 (worse) | 0.0001 | 0.0020 | +1.39 | 0.33 |
+  | − AR component | +0.0468 (worse) | < 0.0001 | 0.0020 | +9.37 | < 0.0001 |
+  | DLinear | +0.0027 (worse) | 0.0017 | 0.0059 | +1.85 | 0.19 |
+  | AR (one model per customer) | −0.0027 (better) | – (no seeds) | – | −0.88 | 0.38 |
+
+  **What this shows for Electricity:**
+  - **Our hypothesis is not confirmed.** RevIN makes RSE **worse** by 5 % (0.1060 vs 0.1008),
+    consistently over all 10 seeds (paired t-test p = 0.0001). It improves CORR (0.9172 vs
+    0.9070) and makes the runs more stable (std 0.0010 vs 0.0062). Over the test hours, the
+    difference is not significant (DM p = 0.33). Our reading: RevIN gets the *shape* of the
+    daily pattern better (CORR), but rescaling each window loses information about the absolute
+    level, which RSE in kWh punishes, especially for the largest customers.
+  - **The AR component matters most**, as the paper claims (Sec. 4.6, Fig. 5): without it RSE
+    rises by 46 % (0.1476), significant in every test.
+  - **The deep part does not clearly earn its complexity on Electricity:** the linear AR model
+    (0.0981) is slightly better than LSTNet (0.1008), and DLinear slightly worse (0.1035), but
+    neither difference is significant over the test hours (DM p = 0.38 and 0.19).
 - **Test set:** used **once**, for the final models only.
 
 ## 6 · Evaluation and error analysis (15 %)

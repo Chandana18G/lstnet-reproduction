@@ -13,11 +13,20 @@ and AR (least squares) have no randomness, so every seed gives the same number.
 | Copy: same time yesterday | lag 24 | none needed | 0 | 0.1104 | 0.8543 | 0.1048 | 0.8667 | `src/baselines.py` |
 | **First baseline: one shared neuron** | q = 24, L1 loss, 60 epochs | 0, 1, 2 | 25 | 0.1051 ± 0.0002 | – | 0.1043 ± 0.0003 | 0.8702 ± 0.0001 | `src/neuron_baseline.py` |
 | **AR, one model per customer** | L = 256 chosen on valid from 2⁰…2⁹, least squares | none needed | 82,497 | **0.0978** | **0.9176** | **0.0981** | **0.9231** | `src/baselines.py` |
+| **LSTNet-Skip (reproduction)** | authors' settings, 100 epochs | 0–9 | 325,871 | – | – | **0.1008 ± 0.0018** | 0.9070 ± 0.0062 | `src/train.py`, Colab |
+| LSTNet + RevIN (improvement) | same + RevIN | 0–9 | 326,513 | – | – | 0.1060 ± 0.0014 | 0.9172 ± 0.0010 | `src/train.py`, Colab |
+| LSTNet without AR (ablation) | same, no AR part | 0–9 | 325,846 | – | – | 0.1476 ± 0.0096 | 0.8617 ± 0.0043 | `src/train.py`, Colab |
+| DLinear (comparison) | window 168, moving average 25 | 0–9 | 338 | – | – | 0.1035 ± 0.0003 | 0.9052 ± 0.0003 | `src/train.py`, Colab |
 | *Paper: AR* | – | – | – | – | – | *0.1054* | *0.8595* | Table 2 |
 | *Paper: LSTNet-Skip* | – | – | – | – | – | *0.1007* | *0.9119* | Table 2 |
 
+Statistical tests of the neural models: `results/stats_electricity_h24.md`.
+
 ## Notes
 
+* **LSTNet-Skip is reproduced:** 0.1008 ± 0.0018 over 10 seeds vs 0.1007 in the paper.
+* RevIN does **not** improve RSE (worse by 0.0052, paired t-test p = 0.0001), but improves CORR.
+* Without its AR part LSTNet is much worse (0.1476), as the paper's ablation says.
 * Our AR beats the paper's AR **and** the paper's LSTNet-Skip on both metrics. Checks done:
   an independent loop implementation gives the same predictions (difference < 1e-11);
   no validation or test target is used for fitting; the max-scaling cannot leak into a
