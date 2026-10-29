@@ -169,45 +169,19 @@ the paper, can land anywhere between about 0.45 and 0.50. Settings: the authors'
 
 ## 4 · Your improvement (20 %)
 
-### Electricity (Chandana): LSTNet + RevIN
+**Improvement:** add RevIN (Kim et al., ICLR 2022) to LSTNet-Skip. Each input window is
+normalised to mean 0 and std 1, and the prediction is moved back afterwards. Everything else
+stays the same as in the reproduction.
 
-- **Idea:** add reversible instance normalisation (RevIN; Kim et al., ICLR 2022) to LSTNet-Skip.
-  Before the network, each customer's input window is shifted to mean 0 and scaled to standard
-  deviation 1, using only that window; after the network, the prediction is moved back to the
-  window's own mean and scale. Two learnable numbers per customer (scale and shift) are added.
-  Everything else (data, split, settings, training) stays the same as in the reproduction.
-- **Why it should help:** the paper itself names the weakness: the neural part of LSTNet "is
-  not sensitive to the scale of inputs" when the level of a series changes, which is why it adds
-  the linear AR part (Sec. 3.6, Sec. 4.6, Fig. 6). RevIN removes the level directly, so the
-  network only has to learn the shape of the daily and weekly pattern. Our data show such level
-  changes: between training and test, 24 of 321 customers change their mean load by more than
-  20 %, 8 by more than 50 %, and one drops to zero (section 2, Figure 2).
-- **Expected effect:** **Because** the level of some customers drifts between training and test
-  (Figure 2), **we expect** RevIN **to improve** the test RSE of LSTNet-Skip at horizon 24
-  **by about** 1–3 % (for example from about 0.101 to about 0.099), measured as the mean over
-  10 seeds. Because the median customer keeps its level (test/train ratio 0.99), we expect only
-  a small gain, and CORR to stay about the same.
-- **Comparisons (not improvements):** our AR baseline (one linear model per customer) and
-  DLinear (Zeng et al., AAAI 2023), a strong simple linear model, trained with the same budget.
-  "LSTNet without AR" is the paper's own ablation (LSTw/oAR, Fig. 5) and counts as reproduction.
+- **Electricity (Chandana):** **Because** 24 of 321 customers change their level by more than
+  20 % between training and test, **we expect** RevIN **to improve** the test RSE at horizon 24
+  **by about** 1–3 % (0.101 → 0.099, mean over 10 seeds).
+- **Solar-Energy (Dinesh):** **Because** every plant produces about 29 % less in the winter test
+  period, **we expect** RevIN **to improve** the test RSE at horizon 24 **by about** 3–5 %
+  (0.464 → 0.445, mean over 10 seeds).
 
-### Solar-Energy (Dinesh)
-
-- **Idea:** the same change as on Electricity: RevIN around LSTNet-Skip, with everything else
-  unchanged, so the two datasets can be compared directly.
-- **Why it should help:** Solar has a strong level shift: because the split by time is also a
-  split by season, **every** plant produces less in the winter test period (median test/train
-  ratio 0.71, range 0.62–0.83; section 2, Figure 4). Removing each window's level is exactly what
-  RevIN is designed for.
-- **Expected effect:** **Because** every plant's output level drops by about 29 % from the
-  training (spring/summer) to the test (early winter) period, **we expect** RevIN **to improve** the
-  test RSE of LSTNet-Skip at horizon 24 **by about** 3–5 % (for example from the paper's 0.464
-  to about 0.445), measured as the mean over 10 seeds. Because the shift affects every plant, we
-  expect a larger gain than on Electricity, where the level hardly changes, and CORR to stay
-  about the same.
-- **Next idea (planned):** a one-day skip (p = 144 steps) with a 3-day window (432 steps); the
-  paper only tried skips of 2–64 for Solar, which cannot see the daily cycle (median
-  autocorrelation 0.85 at 144 steps).
+Comparisons (not improvements): AR (one linear model per series), DLinear (Zeng et al., AAAI
+2023) and the paper's "LSTNet without AR" ablation.
 
 ## 5 · Experiments (part of 20 % and 15 %)
 
