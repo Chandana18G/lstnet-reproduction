@@ -26,17 +26,30 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 | Own improvement | RevIN against level shifts, compared with linear models (AR, DLinear) | Skip length of one day (p = 144) with a longer window; RevIN for the winter test period |
 | Shared code | data loading, metrics, baselines, model, training (both review and can explain all of it) | |
 
+## Results (test set, horizon 24, mean ± std over 10 seeds)
+
+| Model | Electricity RSE | Electricity CORR | Solar RSE | Solar CORR |
+|---|---|---|---|---|
+| *Paper: LSTNet-Skip* | *0.1007* | *0.9119* | *0.4643* | *0.8870* |
+| **Ours: LSTNet-Skip (reproduction)** | **0.1008 ± 0.0018** | 0.9070 ± 0.0062 | **0.4753 ± 0.0249** | 0.8835 ± 0.0098 |
+| + RevIN (improvement) | 0.1060 ± 0.0014 | 0.9172 ± 0.0010 | 0.5055 ± 0.0137 | 0.8578 ± 0.0060 |
+| without AR part (paper's ablation) | 0.1476 ± 0.0096 | 0.8617 ± 0.0043 | 0.4529 ± 0.0104 | 0.8922 ± 0.0051 |
+| DLinear | 0.1035 ± 0.0003 | 0.9052 ± 0.0003 | 0.5740 ± 0.0011 | 0.8167 ± 0.0009 |
+| AR, one linear model per series | 0.0981 | 0.9231 | 0.5247 | 0.8462 |
+
+**In short:** both reproductions are close to the paper. On Electricity a simple linear model is as
+good as LSTNet; on Solar LSTNet clearly beats the linear models. RevIN did not lower RSE on either
+dataset. Statistical tests: [`results/stats_electricity_h24.md`](results/stats_electricity_h24.md),
+[`results/stats_solar_h24.md`](results/stats_solar_h24.md); full write-up: [`report.md`](report.md).
+
 ## Status
 
-- [x] Data downloaded and explored (`notebooks/01_explore_electricity.ipynb`)
-- [x] First baseline: one shared neuron, test RSE 0.1043 ± 0.0003 over 3 seeds (`src/neuron_baseline.py`, `notebooks/02_first_network.ipynb`)
-- [x] Data windows, metrics (with tests), AR baseline: test RSE 0.0981 / CORR 0.9231, already better than the paper's LSTNet-Skip ([experiment table](results/experiments.md))
-- [x] LSTNet-Skip implemented and tested against the authors' code; training script with resumable checkpoints
-- [ ] LSTNet-Skip reproduced (full run on Colab: `notebooks/03_train_on_colab.ipynb`)
-- [x] Improvement (RevIN), linear comparison (DLinear), ablation: implemented and tested
-- [x] Statistics script: paired tests over seeds, Diebold–Mariano, Holm correction
-- [ ] Multi-seed runs on Colab (`notebooks/03_train_on_colab.ipynb` runs all of them)
-- [ ] Report
+- [x] Data downloaded and explored (Electricity and Solar notebooks 01)
+- [x] Baselines: copy-the-past rules, one-neuron model (3 seeds), AR per series ([experiment table](results/experiments.md))
+- [x] LSTNet-Skip implemented, tested against the authors' code, reproduced on both datasets (10 seeds)
+- [x] Improvement (RevIN), DLinear and the "without AR" ablation, 10 seeds each, with statistical tests
+- [x] Checks of the AR baseline ([`results/ar_checks_electricity.md`](results/ar_checks_electricity.md))
+- [ ] Error analysis (report section 6), final report and AI-use section
 
 ## Getting started
 

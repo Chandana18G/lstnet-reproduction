@@ -128,8 +128,8 @@
 |---|---|---|
 | Electricity, RSE | 0.1007 | **0.1008 ± 0.0018** |
 | Electricity, CORR | 0.9119 | 0.9070 ± 0.0062 |
-| Solar-Energy, RSE | 0.4643 | [from `results/stats_solar_h24.md`] |
-| Solar-Energy, CORR | 0.8870 | [ ] |
+| Solar-Energy, RSE | 0.4643 | **0.4753 ± 0.0249** |
+| Solar-Energy, CORR | 0.8870 | 0.8835 ± 0.0098 |
 
 **Electricity: reproduced.** Our mean test RSE over 10 seeds (0.1008) is within 0.0001 of the
 paper's 0.1007, well inside one standard deviation (0.0018). CORR is 0.0049 lower than published
@@ -161,7 +161,11 @@ test RSE 0.0981, the paper's AR 0.1054. We checked four possible reasons:
 So the gap is explained by the window length, not by a bug: a well-tuned linear model with a long
 window is stronger than the AR baseline in the paper.
 
-[Solar-Energy: Dinesh.]
+**Solar-Energy: reproduced.** Our mean test RSE over 10 seeds (0.4753) is 2 % above the paper's
+0.4643, within half a standard deviation (0.0249); CORR is almost the same (0.8835 vs 0.8870). The
+spread over seeds is much larger than on Electricity (std 0.0249 vs 0.0018), so a single run, as in
+the paper, can land anywhere between about 0.45 and 0.50. Settings: the authors' `solar.sh`
+(skip-GRU size 10) at horizon 24. Results: `results/stats_solar_h24.md`.
 
 ## 4 · Your improvement (20 %)
 
@@ -189,7 +193,20 @@ window is stronger than the AR baseline in the paper.
 
 ### Solar-Energy (Dinesh)
 
-[Dinesh writes his improvement here, with the same sentence: Because … we expect … to improve … by about …]
+- **Idea:** the same change as on Electricity: RevIN around LSTNet-Skip, with everything else
+  unchanged, so the two datasets can be compared directly.
+- **Why it should help:** Solar has a strong level shift: because the split by time is also a
+  split by season, **every** plant produces less in the winter test period (median test/train
+  ratio 0.71, range 0.62–0.83; section 2, Figure 4). Removing each window's level is exactly what
+  RevIN is designed for.
+- **Expected effect:** **Because** every plant's output level drops by about 29 % from the
+  training (spring/summer) to the test (early winter) period, **we expect** RevIN **to improve** the
+  test RSE of LSTNet-Skip at horizon 24, more than on Electricity, where the level hardly changes.
+  [Dinesh: check this sentence and add the size of the expected gain as you wrote it before the
+  runs.]
+- **Next idea (planned):** a one-day skip (p = 144 steps) with a 3-day window (432 steps); the
+  paper only tried skips of 2–64 for Solar, which cannot see the daily cycle (median
+  autocorrelation 0.85 at 144 steps).
 
 ## 5 · Experiments (part of 20 % and 15 %)
 
@@ -233,6 +250,40 @@ budget of 100 epochs; the best epoch is chosen on validation):
   - **The deep part does not clearly earn its complexity on Electricity:** the linear AR model
     (0.0981) is slightly better than LSTNet (0.1008), and DLinear slightly worse (0.1035), but
     neither difference is significant over the test hours (DM p = 0.38 and 0.19).
+
+**Solar-Energy, horizon 24, test set** (the same design; skip-GRU size 10 as in `solar.sh`):
+
+| Setting | Test RSE mean | ± spread (std) | Test CORR mean ± std | seeds |
+|---|---|---|---|---|
+| baseline: LSTNet-Skip (reproduction) | 0.4753 | 0.0249 | 0.8835 ± 0.0098 | 10 |
+| + RevIN (improvement) | 0.5055 | 0.0137 | 0.8578 ± 0.0060 | 10 |
+| − AR component (paper's ablation LSTw/oAR) | 0.4529 | 0.0104 | 0.8922 ± 0.0051 | 10 |
+| DLinear (comparison) | 0.5740 | 0.0011 | 0.8167 ± 0.0009 | 10 |
+| AR, one model per plant (comparison, least squares, L = 512) | 0.5247 | – (deterministic) | 0.8462 | – |
+| *Paper: LSTNet-Skip* | *0.4643* | – | *0.8870* | – |
+
+  | Model vs LSTNet (Solar) | Mean RSE difference | Paired t-test p (Holm) | Wilcoxon p (raw) | DM statistic | DM p (Holm) |
+  |---|---|---|---|---|---|
+  | + RevIN | +0.0302 (worse) | 0.041 | 0.027 | +2.12 | 0.034 |
+  | − AR component | −0.0224 (better) | 0.022 | 0.006 | −2.49 | 0.026 |
+  | DLinear | +0.0987 (worse) | < 0.0001 | 0.002 | +4.70 | < 0.0001 |
+  | AR (one model per plant) | +0.0494 (worse) | – (no seeds) | – | +5.81 | < 0.0001 |
+
+  **What this shows for Solar:**
+  - **The hypothesis is not confirmed here either:** RevIN makes RSE 6 % worse (0.5055 vs 0.4753)
+    and also lowers CORR (0.8578 vs 0.8835); the RSE difference is significant in both tests, although Solar has the
+    strong level shift RevIN is designed for. A possible reason, still to be checked: many input
+    windows are mostly night zeros, and normalising such near-constant windows is unstable.
+  - **Unlike the paper's ablation, LSTNet without its AR part is slightly better on Solar**
+    (−0.0224, p = 0.02 in both tests). Not yet analysed; possible reasons are the night zeros and
+    the change of season, which make a fixed linear rule on the last 4 hours misleading.
+  - **Here the deep part does earn its complexity:** LSTNet clearly beats both linear models
+    (AR 0.5247, DLinear 0.5740; DM p < 0.0001).
+
+**Both datasets together:** the answer to our question depends on the data. On Electricity
+(regular daily and weekly cycles) linear models are as good as LSTNet and LSTNet's own AR part
+does most of the work; on Solar (night zeros, weather, season change) the neural network clearly
+wins and the AR part is not needed. RevIN did not improve RSE on either dataset.
 - **Test set:** used **once**, for the final models only.
 
 ## 6 · Evaluation and error analysis (15 %)
@@ -243,7 +294,17 @@ budget of 100 epochs; the best epoch is chosen on validation):
 
 ## 7 · Conclusion
 
-[What you reproduced, what you improved, what you would try next.]
+We reproduced LSTNet-Skip at horizon 24 on both datasets with the authors' settings and 10 seeds:
+RSE 0.1008 ± 0.0018 on Electricity (paper 0.1007) and 0.4753 ± 0.0249 on Solar-Energy (paper
+0.4643). Our question was whether LSTNet's deep part earns its complexity over simple linear
+models, and the answer depends on the data. On Electricity it does not: a linear model with one
+set of weights per customer and a long window (RSE 0.0981) is as good as LSTNet, and LSTNet loses
+46 % of its accuracy without its own linear AR part. On Solar it does: LSTNet clearly beats both
+linear models (AR 0.5247, DLinear 0.5740), and the AR part is not even needed. Our improvement,
+RevIN, did not lower RSE on either dataset (Electricity +5 %, Solar +6 %), although it improved
+CORR and stability on Electricity. Next we would analyse where RevIN's extra error comes from
+(section 6), give LSTNet's AR part a longer, per-series window on Electricity, and try a one-day
+skip (144 steps) on Solar.
 
 ## 8 · Use of AI tools (5 %)
 
