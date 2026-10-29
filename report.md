@@ -201,9 +201,10 @@ the paper, can land anywhere between about 0.45 and 0.50. Settings: the authors'
   RevIN is designed for.
 - **Expected effect:** **Because** every plant's output level drops by about 29 % from the
   training (spring/summer) to the test (early winter) period, **we expect** RevIN **to improve** the
-  test RSE of LSTNet-Skip at horizon 24, more than on Electricity, where the level hardly changes.
-  [Dinesh: check this sentence and add the size of the expected gain as you wrote it before the
-  runs.]
+  test RSE of LSTNet-Skip at horizon 24 **by about** 3–5 % (for example from the paper's 0.464
+  to about 0.445), measured as the mean over 10 seeds. Because the shift affects every plant, we
+  expect a larger gain than on Electricity, where the level hardly changes, and CORR to stay
+  about the same.
 - **Next idea (planned):** a one-day skip (p = 144 steps) with a 3-day window (432 steps); the
   paper only tried skips of 2–64 for Solar, which cannot see the daily cycle (median
   autocorrelation 0.85 at 144 steps).
