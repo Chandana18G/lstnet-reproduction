@@ -107,3 +107,17 @@ def test_dlinear_shape_and_trend():
     # The moving average of a constant series is the same constant
     const = torch.full((1, 2, 48), 3.0)
     assert torch.allclose(m.moving_average(const), const)
+
+
+def test_ar_per_series_uses_own_weights():
+    # Improvement 2: series i's AR part only looks at series i, with its own weights.
+    torch.manual_seed(0)
+    m = LSTNet(n=3, window=48, hid_cnn=4, hid_rnn=4, skip=12, ar_window=48,
+               ar_per_series=True, dropout=0.0).eval()
+    assert m.ar_weight.shape == (3, 48) and m.ar_bias.shape == (3,)
+    with torch.no_grad():
+        m.dense.weight.zero_()
+        m.dense.bias.zero_()                        # switch off the deep part
+        x = torch.rand(2, 48, 3)
+        expected = (x.permute(0, 2, 1) * m.ar_weight).sum(dim=2) + m.ar_bias
+        assert torch.allclose(m(x), expected, atol=1e-5)

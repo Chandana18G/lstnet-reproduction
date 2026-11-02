@@ -9,7 +9,8 @@ After every epoch the run is saved to <checkpoint-dir>/<run name>.pt. If trainin
 (e.g. Colab disconnects), start the same command again and it continues from there.
 
 Usage:  python src/train.py --data electricity --horizon 24 --model lstnet --seed 0
-        (models: lstnet, lstnet_revin = our improvement, lstnet_noar = ablation, dlinear)
+        (models: lstnet, lstnet_revin = improvement 1, lstnet_ar168 = improvement 2,
+         lstnet_noar = ablation, dlinear)
 """
 import argparse
 import json
@@ -45,7 +46,7 @@ def main():
     parser.add_argument("--skip", type=int, default=24)
     parser.add_argument("--hid-skip", type=int, default=5)       # authors: 5 electricity, 10 solar
     parser.add_argument("--model", default="lstnet",
-                        choices=["lstnet", "lstnet_revin", "lstnet_noar", "dlinear"])
+                        choices=["lstnet", "lstnet_revin", "lstnet_ar168", "lstnet_noar", "dlinear"])
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--checkpoint-dir", default=str(ROOT / "checkpoints"))
@@ -55,7 +56,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"run {name} on {device}")
 
-    # Data and model. All four models get the same data, loss, optimiser and selection rule.
+    # Data and model. All models get the same data, loss, optimiser and selection rule.
     data, scale = max_scale(load_raw(args.data))
     scale_t = torch.tensor(scale, dtype=torch.float32, device=device)
     torch.manual_seed(args.seed)
@@ -67,6 +68,9 @@ def main():
         model = LSTNet(n=n, window=args.window, skip=args.skip, hid_skip=args.hid_skip,
                        use_ar=(args.model != "lstnet_noar"),
                        use_revin=(args.model == "lstnet_revin"))
+    if args.model == "lstnet_ar168":                 # improvement 2: per-series AR on 168 h
+        model = LSTNet(n=n, window=args.window, skip=args.skip, hid_skip=args.hid_skip,
+                       ar_window=168, ar_per_series=True)
     model = model.to(device)
     optimiser = torch.optim.Adam(model.parameters(), lr=0.001)
 

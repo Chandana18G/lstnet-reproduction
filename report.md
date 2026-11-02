@@ -180,6 +180,16 @@ stays the same as in the reproduction.
   period, **we expect** RevIN **to improve** the test RSE at horizon 24 **by about** 3–5 %
   (0.464 → 0.445, mean over 10 seeds).
 
+**Improvement 2 (Electricity, after the mid-course feedback):** RevIN did not help, so we change
+the part that matters most on Electricity, the AR highway. In the paper it uses the last 24 h
+with the same weights for all customers; we give every customer its own weights over the whole
+168-h window (`lstnet_ar168`). Everything else stays the same.
+
+- **Electricity (Chandana):** **Because** our AR baseline (one linear model per customer, long
+  window) already reaches RSE 0.0981, better than LSTNet's 0.1008, **we expect** a per-customer
+  168-h AR highway **to improve** the test RSE at horizon 24 **by about** 2–4 %
+  (0.1008 → about 0.098, mean over 10 seeds).
+
 Comparisons (not improvements): AR (one linear model per series), DLinear (Zeng et al., AAAI
 2023) and the paper's "LSTNet without AR" ablation.
 

@@ -12,6 +12,7 @@ Shapes use: B = batch size, q = window, n = number of series, C = CNN filters.
                                                                    -> h_S (B, p * hid_skip)
     4. Dense     [h_R, h_S] -> n outputs                           -> h_D (B, n)
     5. AR        one linear model on the last `ar_window` values, shared by all series
+                 (improvement 2: one linear model per series, see `ar_per_series`)
                                                                    -> h_L (B, n)
     output = h_D + h_L
 """
@@ -64,10 +65,12 @@ class RevIN(nn.Module):
 
 class LSTNet(nn.Module):
     def __init__(self, n, window=168, hid_cnn=100, hid_rnn=100, hid_skip=5, kernel=6,
-                 skip=24, ar_window=24, dropout=0.2, use_ar=True, use_revin=False):
+                 skip=24, ar_window=24, dropout=0.2, use_ar=True, use_revin=False,
+                 ar_per_series=False):
         super().__init__()
         self.n, self.window, self.skip, self.hid_skip = n, window, skip, hid_skip
         self.ar_window = ar_window if use_ar else 0
+        self.ar_per_series = ar_per_series
         self.revin = RevIN(n) if use_revin else None
         if skip > 0 and (window - kernel) // skip < 1:
             raise ValueError(f"window {window} too short for skip {skip}: no full skip sequence")
@@ -83,8 +86,13 @@ class LSTNet(nn.Module):
         self.dropout = nn.Dropout(dropout)
         # 4. Dense layer combining h_R and the p skip states into n outputs
         self.dense = nn.Linear(hid_rnn + (skip * hid_skip if skip > 0 else 0), n)
-        # 5. Autoregressive "highway": the same weights for every series
-        if self.ar_window > 0:
+        # 5. Autoregressive "highway": the same weights for every series (paper), or
+        #    improvement 2: its own weights and bias for every series
+        if self.ar_window > 0 and ar_per_series:
+            limit = 1 / self.ar_window ** 0.5            # same start values as nn.Linear
+            self.ar_weight = nn.Parameter(torch.empty(n, self.ar_window).uniform_(-limit, limit))
+            self.ar_bias = nn.Parameter(torch.empty(n).uniform_(-limit, limit))
+        elif self.ar_window > 0:
             self.ar = nn.Linear(self.ar_window, 1)
 
     def forward(self, x):                            # x: (B, q, n), already scaled
@@ -112,7 +120,10 @@ class LSTNet(nn.Module):
         # 5. AR on the last ar_window raw (scaled) values of each series -> h_L (B, n)
         if self.ar_window > 0:
             z = x[:, -self.ar_window:, :].permute(0, 2, 1)       # (B, n, ar_window)
-            out = out + self.ar(z).squeeze(2)
+            if self.ar_per_series:                   # series i uses row i of the weights
+                out = out + (z * self.ar_weight).sum(dim=2) + self.ar_bias
+            else:
+                out = out + self.ar(z).squeeze(2)
 
         if self.revin is not None:                   # back to the window's level and scale
             out = self.revin.denormalise(out)

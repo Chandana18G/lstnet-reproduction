@@ -29,7 +29,7 @@ from data import load_raw, max_scale, split_targets
 from metrics import window_losses
 
 ROOT = Path(__file__).resolve().parent.parent
-MODELS = ["lstnet", "lstnet_revin", "lstnet_noar", "dlinear"]
+MODELS = ["lstnet", "lstnet_revin", "lstnet_ar168", "lstnet_noar", "dlinear"]
 
 
 def diebold_mariano(loss_a, loss_b, h):
