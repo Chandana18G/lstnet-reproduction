@@ -203,13 +203,14 @@ budget of 100 epochs; the best epoch is chosen on validation):
 | Setting | Test RSE mean | ± spread (std) | Test CORR mean ± std | seeds |
 |---|---|---|---|---|
 | baseline: LSTNet-Skip (reproduction) | 0.1008 | 0.0018 | 0.9070 ± 0.0062 | 10 |
-| + RevIN (our improvement) | 0.1060 | 0.0014 | 0.9172 ± 0.0010 | 10 |
+| + RevIN (improvement 1) | 0.1060 | 0.0014 | 0.9172 ± 0.0010 | 10 |
+| + per-customer AR over 168 h (improvement 2) | **0.0988** | 0.0012 | **0.9246 ± 0.0019** | 10 |
 | − AR component (paper's ablation LSTw/oAR) | 0.1476 | 0.0096 | 0.8617 ± 0.0043 | 10 |
 | DLinear (comparison) | 0.1035 | 0.0003 | 0.9052 ± 0.0003 | 10 |
 | AR, one model per customer (comparison, least squares) | 0.0981 | – (deterministic) | 0.9231 | – |
 | *Paper: LSTNet-Skip* | *0.1007* | – | *0.9119* | – |
 
-- **Statistical comparison** (`src/stats.py`; Holm-corrected over the four comparisons with LSTNet):
+- **Statistical comparison** (`src/stats.py`; Holm-corrected over all comparisons with LSTNet):
   - *Over seeds:* paired t-test and Wilcoxon signed-rank test, seed k against seed k (same seed =
     same initial weights and batch order).
   - *Over test hours:* Diebold–Mariano test on the squared error per hour (summed over customers),
@@ -219,17 +220,26 @@ budget of 100 epochs; the best epoch is chosen on validation):
   | Model vs LSTNet | Mean RSE difference | Paired t-test p (Holm) | Wilcoxon p (raw) | DM statistic | DM p (Holm) |
   |---|---|---|---|---|---|
   | + RevIN | +0.0052 (worse) | 0.0001 | 0.0020 | +1.39 | 0.33 |
+  | + per-customer AR 168 h | −0.0020 (better) | 0.026 | 0.020 | −2.78 | 0.022 |
   | − AR component | +0.0468 (worse) | < 0.0001 | 0.0020 | +9.37 | < 0.0001 |
-  | DLinear | +0.0027 (worse) | 0.0017 | 0.0059 | +1.85 | 0.19 |
+  | DLinear | +0.0027 (worse) | 0.0025 | 0.0059 | +1.85 | 0.19 |
   | AR (one model per customer) | −0.0027 (better) | – (no seeds) | – | −0.88 | 0.38 |
 
   **What this shows for Electricity:**
-  - **Our hypothesis is not confirmed.** RevIN makes RSE **worse** by 5 % (0.1060 vs 0.1008),
+  - **Improvement 1 (RevIN): the hypothesis is not confirmed.** RevIN makes RSE **worse** by 5 % (0.1060 vs 0.1008),
     consistently over all 10 seeds (paired t-test p = 0.0001). It improves CORR (0.9172 vs
     0.9070) and makes the runs more stable (std 0.0010 vs 0.0062). Over the test hours, the
     difference is not significant (DM p = 0.33). Our reading: RevIN gets the *shape* of the
     daily pattern better (CORR), but rescaling each window loses information about the absolute
     level, which RSE in kWh punishes, especially for the largest customers.
+  - **Improvement 2 (per-customer AR over 168 h): the hypothesis is confirmed, at the low end of
+    the expected size.** RSE drops by 2.0 % (0.0988 vs 0.1008; expected 2–4 %), better in the
+    seed comparison (paired t-test p = 0.026, Wilcoxon p = 0.020) and over the test hours
+    (DM −2.78, p = 0.022). It also gives the best CORR of all models (0.9246 vs 0.9070) and more
+    stable runs (std 0.0012 vs 0.0018). Giving every customer its own linear weights over the whole
+    week lets the model follow each customer's level and weekly pattern; this is the part that
+    matters most on Electricity. It is about as good as the stand-alone per-customer AR (0.0981),
+    so the deep part still adds little on top of a good linear model here.
   - **The AR component matters most**, as the paper claims (Sec. 4.6, Fig. 5): without it RSE
     rises by 46 % (0.1476), significant in every test.
   - **The deep part does not clearly earn its complexity on Electricity:** the linear AR model
@@ -284,12 +294,14 @@ RSE 0.1008 ± 0.0018 on Electricity (paper 0.1007) and 0.4753 ± 0.0249 on Solar
 0.4643). Our question was whether LSTNet's deep part earns its complexity over simple linear
 models, and the answer depends on the data. On Electricity it does not: a linear model with one
 set of weights per customer and a long window (RSE 0.0981) is as good as LSTNet, and LSTNet loses
-46 % of its accuracy without its own linear AR part. On Solar it does: LSTNet clearly beats both
-linear models (AR 0.5247, DLinear 0.5740), and the AR part is not even needed. Our improvement,
-RevIN, did not lower RSE on either dataset (Electricity +5 %, Solar +6 %), although it improved
-CORR and stability on Electricity. Next we would analyse where RevIN's extra error comes from
-(section 6), give LSTNet's AR part a longer, per-series window on Electricity, and try a one-day
-skip (144 steps) on Solar.
+46 % of its accuracy without its own linear AR part. Building that insight into LSTNet, with one
+AR model per customer over the whole week, was our successful improvement: RSE 0.0988 ± 0.0012,
+2 % better than the reproduction and significant over seeds and over test hours (p ≈ 0.02). On Solar it does: LSTNet clearly beats both
+linear models (AR 0.5247, DLinear 0.5740), and the AR part is not even needed. Our first
+improvement, RevIN, did not lower RSE on either dataset (Electricity +5 %, Solar +6 %), although it
+improved CORR and stability on Electricity. Next we would analyse where RevIN's extra error comes
+from (section 6), test the per-series AR highway on Solar, and try a one-day skip (144 steps) on
+Solar.
 
 ## 8 · Use of AI tools (5 %)
 
