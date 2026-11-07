@@ -29,7 +29,15 @@ from data import load_raw, max_scale, split_targets
 from metrics import window_losses
 
 ROOT = Path(__file__).resolve().parent.parent
-MODELS = ["lstnet", "lstnet_revin", "lstnet_ar168", "lstnet_noar", "dlinear"]
+MODELS = ["lstnet", "lstnet_revin", "lstnet_ar168", "lstnet_noar", "dlinear", "lstnet_skip144"]
+
+
+def run_name_start(data_name, h, model):
+    """Start of the run names of one model. All models use skip 24, except the one-day skip
+    (Solar improvement: "lstnet_skip144" = LSTNet trained with --skip 144 --window 438)."""
+    if model == "lstnet_skip144":
+        return f"{data_name}_h{h}_lstnet_skip144"
+    return f"{data_name}_h{h}_{model}_skip24"
 
 
 def diebold_mariano(loss_a, loss_b, h):
@@ -62,7 +70,7 @@ def holm(p_values):
 def load_runs(data_name, h, model):
     """{seed: result dict} for one model, from results/runs/*.json."""
     runs = {}
-    for f in glob.glob(str(ROOT / "results" / "runs" / f"{data_name}_h{h}_{model}_skip*_seed*.json")):
+    for f in glob.glob(str(ROOT / "results" / "runs" / f"{run_name_start(data_name, h, model)}_seed*.json")):
         r = json.loads(Path(f).read_text())
         seed = int(r["run"].split("_seed")[-1])
         runs[seed] = r

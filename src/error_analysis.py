@@ -20,19 +20,29 @@ from metrics import corr, rse
 
 ROOT = Path(__file__).resolve().parent.parent
 MODELS = {"electricity": ["lstnet", "lstnet_revin", "lstnet_ar168"],
-          "solar": ["lstnet", "lstnet_revin", "lstnet_noar"]}
+          "solar": ["lstnet", "lstnet_revin", "lstnet_noar", "lstnet_skip144"]}
 BLOCKS = 6                                     # the day is cut into 6 blocks of 4 hours
+
+
+def run_name_start(data_name, h, model):
+    """Start of the run names of one model. All models use skip 24, except the one-day skip
+    (Solar improvement: "lstnet_skip144" = LSTNet trained with --skip 144 --window 438)."""
+    if model == "lstnet_skip144":
+        return f"{data_name}_h{h}_lstnet_skip144"
+    return f"{data_name}_h{h}_{model}_skip24"
 
 
 def mean_forecast(pred_dir, data_name, h, model):
     """Average test forecast over all seeds of one model. Returns (forecast, number of seeds)."""
-    files = glob.glob(f"{pred_dir}/{data_name}_h{h}_{model}_skip*_seed*_test_predictions.npy")
+    files = glob.glob(f"{pred_dir}/{run_name_start(data_name, h, model)}_seed*_test_predictions.npy")
+    if not files:
+        return None, 0
     return np.mean([np.load(f) for f in files], axis=0), len(files)
 
 
 def rse_per_seed(pred_dir, data_name, h, model, true, keep):
     """Test RSE of every seed of one model, using only the series in `keep`."""
-    files = sorted(glob.glob(f"{pred_dir}/{data_name}_h{h}_{model}_skip*_seed*_test_predictions.npy"))
+    files = sorted(glob.glob(f"{pred_dir}/{run_name_start(data_name, h, model)}_seed*_test_predictions.npy"))
     return np.array([rse(np.load(f)[:, keep], true[:, keep]) for f in files])
 
 
