@@ -231,7 +231,8 @@ budget of 100 epochs; the best epoch is chosen on validation):
     0.9070) and makes the runs more stable (std 0.0010 vs 0.0062). Over the test hours, the
     difference is not significant (DM p = 0.33). Our reading: RevIN gets the *shape* of the
     daily pattern better (CORR), but rescaling each window loses information about the absolute
-    level, which RSE in kWh punishes, especially for the largest customers.
+    level, which RSE in kWh punishes, especially for the largest customers. Section 6 shows that
+    this loss comes from one customer.
   - **Improvement 2 (per-customer AR over 168 h): the hypothesis is confirmed, at the low end of
     the expected size.** RSE drops by 2.0 % (0.0988 vs 0.1008; expected 2–4 %), better in the
     seed comparison (paired t-test p = 0.026, Wilcoxon p = 0.020) and over the test hours
@@ -245,6 +246,17 @@ budget of 100 epochs; the best epoch is chosen on validation):
   - **The deep part does not clearly earn its complexity on Electricity:** the linear AR model
     (0.0981) is slightly better than LSTNet (0.1008), and DLinear slightly worse (0.1035), but
     neither difference is significant over the test hours (DM p = 0.38 and 0.19).
+
+**Improvement 2 against the baseline, seed by seed** (the same seeds in the same order; raw p-values, before the Holm correction used in the table above):
+
+| Model | Test RSE, 10 seeds |
+|---|---|
+| LSTNet-Skip | 0.1008 ± 0.0018 |
+| LSTNet + per-customer AR over 168 h | 0.0988 ± 0.0012 |
+
+LSTNet + per-customer AR is 0.0020 ± 0.0021 better in RSE than LSTNet-Skip, on 8 of 10 seeds (paired t-test p = 0.0131, significant; Wilcoxon p = 0.0195). The seeds alone move the baseline by 0.0050, more than most gaps between the two models, which is why we compare seed by seed.
+
+![Test RSE per seed: baseline, improved model, and the gap between them](results/figures/paired_runs_electricity.png)
 
 **Solar-Energy, horizon 24, test set** (the same design; skip-GRU size 10 as in `solar.sh`):
 
@@ -284,14 +296,25 @@ wins and the AR part is not needed. RevIN did not improve RSE on either dataset.
 ## 6 · Evaluation and error analysis (15 %)
 
 - **Metrics that fit the task:** this is regression, so there is no confusion matrix. We use the paper's two metrics because they answer different questions: RSE pools squared errors in original units, so large series and level errors dominate it; CORR is computed per series and ignores level and scale, so every series counts equally. RevIN shows why both are needed: on Electricity it improves CORR and worsens RSE.
-- **Where the models fail:** [to be filled in from `results/error_analysis_electricity_h24.md` and `results/error_analysis_solar_h24.md`, made by `src/error_analysis.py`]
+- **Where the models fail, Electricity** (`src/error_analysis.py`, `results/error_analysis_electricity_h24.md`; forecasts averaged over the seeds):
+  - **One customer dominates RSE.** Customer #313 holds 26.5 % of the test load but makes 85.5 % of LSTNet's squared error (RevIN 87.9 %, improvement 2 86.7 %), and the 10 largest customers make 98.2 %. So RSE on Electricity mostly measures how well the models predict one customer.
+  - **This changes how we read RevIN.** RevIN has a smaller squared error than LSTNet on 299 of 321 customers. Without #313, its mean RSE over seeds is better than LSTNet's (0.0985 ± 0.0011 vs 0.1042 ± 0.0040, paired t-test raw p = 0.003). Its overall loss comes from the largest customers, which fits its better CORR. This comparison was made after seeing the results, so it is a finding to test again, not a confirmed claim.
+  - **Improvement 2 holds up without that customer:** better on 305 of 321 customers, and without #313 RSE 0.0980 ± 0.0015 vs 0.1042 ± 0.0040 (raw p = 0.0002). It also gains most in absolute terms on the largest customers: the 10 largest make up about 96 % of the drop in squared error.
+  - **Level shift is not where the error is.** The 24 customers whose level changes by more than 20 % make only 0.2 % of LSTNet's squared error. This is a second reason why RevIN, chosen for those customers, could not lower RSE much.
+  - **Time of day.** Almost all the error falls in the daytime: the 8 hours from 12 to 20 make about 56 % of it, the 4 hours from 04 to 08 only 1.5 %. The worst 1 % of test hours hold 17.4 % of LSTNet's squared error, and three of its five worst hours are in a row (steps 22072–22074). The file has no timestamps, so these hours assume that it starts at midnight.
+  - **Worst customers.** The median correlation per customer is 0.943, but a few customers are barely predicted, such as #2 (−0.014) and #317 (0.213).
+
+  ![Electricity: squared error by hour of the day](results/figures/error_by_time_electricity.png)
+
+- **Where the models fail, Solar-Energy:** [Dinesh: from `results/error_analysis_solar_h24.md`, made by the same script]
 - **Limitations, what our results do not show:**
   - *One horizon and one split.* We test horizon 24 only, on one chronological test period. The seeds measure training randomness, not how the models behave in other periods. On Solar-Energy the test period is also a single season.
   - *Improvement 2 was chosen after seeing test results.* Its idea came from test results of the AR baseline and the ablation, and its hypothesis was written before its own runs. The test set therefore influenced the choice of the idea, so its 2 % gain may be slightly optimistic and should be confirmed on another period.
   - *No grid search.* We use the authors' final settings and do not repeat their search, so we cannot say that these settings are the best for our improvements.
   - *Improvement 2 was tested on Electricity only,* and it was not compared statistically with the stand-alone AR model (0.0981).
   - *The authors' scaling uses the whole series,* test period included. Its effect is small (section 2), but it is a leak.
-  - *The explanations are readings, not proofs.* Why RevIN fails and why Solar-Energy is better without AR were not tested with separate experiments.
+  - *RSE depends heavily on one customer.* Our Electricity ranking is largely a ranking on #313, so differences of a few percent say little about the typical customer.
+  - *The explanations are readings, not proofs.* Why RevIN hurts on the largest customers and why Solar-Energy is better without AR were not tested with separate experiments.
 
 ## 7 · Conclusion
 
@@ -305,9 +328,10 @@ AR model per customer over the whole week, was our successful improvement: RSE 0
 2 % better than the reproduction and significant over seeds and over test hours (p ≈ 0.02). On
 Solar the deep part does earn its complexity: LSTNet clearly beats both linear models (AR 0.5247,
 DLinear 0.5740), and the AR part is not even needed. Our first improvement, RevIN, did not lower RSE on either dataset (Electricity +5 %, Solar +6 %), although it
-improved CORR and stability on Electricity. Next we would analyse where RevIN's extra error comes
-from (section 6), test the per-series AR highway on Solar, and try a one-day skip (144 steps) on
-Solar.
+improved CORR and stability on Electricity. The error analysis shows why: one customer makes 85 %
+of LSTNet's squared error on Electricity, RevIN is better on 299 of 321 customers, and its overall
+loss comes from the largest ones. Next we would repeat that comparison on another period, test the
+per-series AR highway on Solar, and try a one-day skip (144 steps) on Solar.
 
 ## 8 · Use of AI tools (5 %)
 

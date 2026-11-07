@@ -1,0 +1,8 @@
+{
+  "run": "electricity_h24_lstnet_noar_skip24_seed0",
+  "best_epoch": 82,
+  "valid_rse": 0.1238823902741959,
+  "test_rse": 0.13700680808215307,
+  "test_corr": 0.8648978953670013,
+  "series_left_out_of_corr": 1
+}

@@ -1,0 +1,8 @@
+{
+  "run": "electricity_h24_dlinear_skip24_seed2",
+  "best_epoch": 78,
+  "valid_rse": 0.09670455808032227,
+  "test_rse": 0.10309610628101754,
+  "test_corr": 0.9052201032841829,
+  "series_left_out_of_corr": 1
+}

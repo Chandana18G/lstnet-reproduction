@@ -13,6 +13,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 
 from data import STEPS_PER_DAY, load_raw, max_scale, split_targets
 from metrics import corr, rse
@@ -27,6 +28,12 @@ def mean_forecast(pred_dir, data_name, h, model):
     """Average test forecast over all seeds of one model. Returns (forecast, number of seeds)."""
     files = glob.glob(f"{pred_dir}/{data_name}_h{h}_{model}_skip*_seed*_test_predictions.npy")
     return np.mean([np.load(f) for f in files], axis=0), len(files)
+
+
+def rse_per_seed(pred_dir, data_name, h, model, true, keep):
+    """Test RSE of every seed of one model, using only the series in `keep`."""
+    files = sorted(glob.glob(f"{pred_dir}/{data_name}_h{h}_{model}_skip*_seed*_test_predictions.npy"))
+    return np.array([rse(np.load(f)[:, keep], true[:, keep]) for f in files])
 
 
 def share(part, total):
@@ -75,6 +82,24 @@ def main():
         lines.append(f"| {name} | " + " | ".join(cells) + " |")
     lines += ["", f"The 10 largest series hold {share(true[:, largest].sum(), true.sum())} of the total test "
               "load or output."]
+
+    # The single largest series, and every result again without it
+    top = largest[0]
+    others = np.arange(true.shape[1]) != top
+    lines += ["", f"## 2b. The single largest series (#{top})", "",
+              f"It holds {share(true[:, top].sum(), true.sum())} of the total test load or output.", "",
+              "| " + header, line]
+    lines.append(f"| Share of squared error from #{top} | "
+                 + " | ".join(share(errors[m][:, top].sum(), errors[m].sum()) for m in models) + " |")
+    lines.append(f"| Test RSE without #{top} (seed-averaged forecast) | "
+                 + " | ".join(f"{rse(preds[m][:, others], true[:, others]):.4f}" for m in models) + " |")
+    without = {m: rse_per_seed(args.pred_dir, args.data, h, m, true, others) for m in models}
+    lines.append(f"| Test RSE without #{top} (mean ± std over seeds) | "
+                 + " | ".join(f"{without[m].mean():.4f} ± {without[m].std(ddof=1):.4f}" for m in models) + " |")
+    cells = ["–"] + [f"{stats.ttest_rel(without[m], without[base]).pvalue:.4f}" for m in models[1:]]
+    lines.append(f"| Paired t-test against {base} without #{top} (raw p) | " + " | ".join(cells) + " |")
+    cells = ["–"] + [f"{(errors[m].sum(axis=0) < errors[base].sum(axis=0)).sum()} of {true.shape[1]}" for m in models[1:]]
+    lines.append(f"| Series with smaller squared error than {base} | " + " | ".join(cells) + " |")
 
     # 3. Series whose level shifts between training and test against the others
     train_end = train[-1] + 1

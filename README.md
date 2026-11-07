@@ -41,7 +41,8 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 **In short:** both reproductions are close to the paper. On Electricity a simple linear model is as
 good as LSTNet; on Solar LSTNet clearly beats the linear models. RevIN did not lower RSE on either
 dataset. Giving LSTNet one AR model per customer over the whole week improved Electricity by 2 %
-(significant over seeds and over test hours, p ≈ 0.02). Statistical tests: [`results/stats_electricity_h24.md`](results/stats_electricity_h24.md),
+(significant over seeds and over test hours, p ≈ 0.02). One customer (#313) makes 85 % of the
+squared error on Electricity, and without it RevIN is better than LSTNet too (see report, section 6). Statistical tests: [`results/stats_electricity_h24.md`](results/stats_electricity_h24.md),
 [`results/stats_solar_h24.md`](results/stats_solar_h24.md); full write-up: [`report.md`](report.md).
 
 ## Status
@@ -52,7 +53,8 @@ dataset. Giving LSTNet one AR model per customer over the whole week improved El
 - [x] Improvement 1 (RevIN), DLinear and the "without AR" ablation, 10 seeds each, with statistical tests
 - [x] Improvement 2 on Electricity (per-customer AR over 168 h), 10 seeds, with statistical tests
 - [x] Checks of the AR baseline ([`results/ar_checks_electricity.md`](results/ar_checks_electricity.md))
-- [ ] Error analysis (report section 6), final report and AI-use section
+- [x] Error analysis on Electricity (report section 6)
+- [ ] Error analysis on Solar-Energy, final report and AI-use section
 
 ## Getting started
 
