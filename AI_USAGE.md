@@ -10,3 +10,6 @@ datasets and the comparison models, and we can explain and change every line we 
 | 18.10.2026 | Drafting code for data loading, exploration, the first network, metrics with tests and the AR baseline. |
 | 18.10.2026 | Verifying the unexpected AR result with a second, independent implementation. |
 | 20.10.2026 | Drafting the LSTNet model and training code from the authors' published code, with a test that compares both forward passes. |
+| 20.10.2026 | Simplifying all code so it is readable, with results unchanged. |
+| 28.10.2026 | Researching improvement options and possible reasons why RevIN made RSE worse. |
+| 02.11.2026 | Suggesting and coding improvement 2 (per-customer AR over 168 h), and writing its result into the report. |

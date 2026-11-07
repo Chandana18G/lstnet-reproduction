@@ -335,7 +335,20 @@ per-series AR highway on Solar, and try a one-day skip (144 steps) on Solar.
 
 ## 8 · Use of AI tools (5 %)
 
-[Which tools you used, for what (code, text, debugging), and how you **checked** their output. Be specific.]
+We used **Claude Code** (Anthropic) for programming, debugging, explanations and drafting report text. Chandana and Dinesh each used it for their own dataset. A short log of the main uses is in `AI_USAGE.md`.
+
+**What it did:** it drafted most of the code in `src/` and `tests/`, the notebooks and a first version of most report sections. It also researched and suggested options for the improvements. We chose among them.
+
+**What we did:** we chose the paper and the datasets, decided which improvements to test, ran the training on Colab, and went through the code line by line so that we can explain it.
+
+**How we checked its output:**
+
+- *Model:* a test shows that our forward pass equals the authors' code with the same weights (`tests/test_model.py`). The result (0.1008) also matches the paper (0.1007).
+- *Data and metrics:* small tests with values checked by hand, for example that the newest input is exactly h steps before the target.
+- *Unexpected results:* our AR beating the paper's AR led to the four checks in section 3. These checks follow the professor's feedback.
+- *Numbers:* we recomputed the Electricity table and tests from the 50 raw result files, and they match exactly.
+
+**Where it was wrong:** it first labelled the Solar copy-the-past baselines as if the data were hourly, which was fixed by using the real day length. It also misread a figure (9 instead of 8 better seeds) and gave a wrong best epoch; both were corrected against the result files. So we did not take its numbers on trust.
 
 ## 9 · Reproducibility (part of 25 %)
 
