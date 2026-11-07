@@ -57,17 +57,27 @@ dataset. Giving LSTNet one AR model per customer over the whole week improved El
 ## Getting started
 
 ```bash
+git clone https://github.com/Chandana18G/lstnet-reproduction.git
+cd lstnet-reproduction
 pip install -r requirements.txt
 bash scripts/download_data.sh      # both datasets into data/ (not committed); add 'electricity' or 'solar' for one
 jupyter notebook notebooks/
 pytest tests/                       # checks windows, split and metrics on toy arrays
 python src/baselines.py --data electricity --horizon 24   # copy-the-past rules + AR (~8 min on CPU)
 python src/neuron_baseline.py --data electricity --horizon 24 --seeds 0 1 2   # first neural baseline
-python src/train.py --data electricity --horizon 24 --model lstnet --seed 0   # or lstnet_revin, lstnet_noar, dlinear (use a GPU)
+python src/train.py --data electricity --horizon 24 --model lstnet --seed 0   # or lstnet_revin, lstnet_ar168, lstnet_noar, dlinear (use a GPU)
 python src/stats.py --data electricity --horizon 24 --pred-dir checkpoints     # table over seeds + statistical tests
+python src/error_analysis.py --data electricity --horizon 24 --pred-dir checkpoints   # where the errors are
 ```
 
 Data source: [laiguokun/multivariate-time-series-data](https://github.com/laiguokun/multivariate-time-series-data).
+On Windows, run the download script in Git Bash. Or download
+[electricity.txt.gz](https://raw.githubusercontent.com/laiguokun/multivariate-time-series-data/master/electricity/electricity.txt.gz)
+and [solar_AL.txt.gz](https://raw.githubusercontent.com/laiguokun/multivariate-time-series-data/master/solar-energy/solar_AL.txt.gz)
+by hand and put them, still zipped, into a folder `data/`.
+
+Training was done on Google Colab: `notebooks/03_train_on_colab.ipynb` (Electricity) and
+`notebooks/03_train_on_colab_solar.ipynb` (Solar-Energy).
 
 ## Repository layout
 
@@ -81,7 +91,10 @@ src/neuron_baseline.py     first neural baseline (one neuron), several seeds
 src/model.py               LSTNet-Skip
 src/train.py               training and evaluation, resumable
 src/stats.py               results over seeds and statistical tests
-report/                    presentation and report outlines
+src/error_analysis.py      where the test errors are (report section 6)
+src/check_ar.py            the four checks of our AR baseline
+src/save_split.py          writes the fixed split to results/splits.json
+report.md                  the report
 tests/                     small hand-checkable tests
 results/experiments.md     experiment table
 results/figures/           plots used in the report

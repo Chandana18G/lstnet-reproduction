@@ -1,13 +1,13 @@
 # Reproducing LSTNet on Electricity and Solar-Energy, and testing whether the deep part earns its complexity
 
 **Deep Learning · M.Sc. Applied Data Science and AI · SRH University Munich · Winter semester 2026/27**
-**Author(s):** Chandana Gurusiddappa (Electricity), Dineshkumar Swaminathan (Solar-Energy) · **Repository:** https://github.com/Chandana18G/lstnet-reproduction · **Date:** [hand-in date]
+**Author(s):** Chandana Gurusiddappa (Electricity), Dineshkumar Swaminathan (Solar-Energy) · **Repository:** https://github.com/Chandana18G/lstnet-reproduction · **Date:** 08.11.2026
 
 ---
 
 ## Abstract
 
-[Four or five sentences: the task, the paper, the data, your reproduced result next to the published one, your improvement and its measured effect (mean ± spread).]
+We forecast all series of a multivariate time series one value 24 steps ahead and reproduce LSTNet-Skip (Lai et al., SIGIR 2018) on Electricity (321 customers, hourly) and Solar-Energy (137 PV plants, every 10 minutes). With the authors' settings and 10 seeds we reach test RSE 0.1008 ± 0.0018 on Electricity (paper 0.1007) and 0.4753 ± 0.0249 on Solar-Energy (paper 0.4643). Our first improvement, RevIN, made RSE worse on both datasets (+5 % and +6 %). Our second, one AR model per customer over the whole 168-hour window, lowers Electricity RSE by 2 % to 0.0988 ± 0.0012 (paired t-test p = 0.026, Diebold–Mariano p = 0.022, Holm-corrected). Comparisons with linear models show that the deep part does not clearly earn its complexity on Electricity, but does on Solar-Energy.
 
 ## 1 · The paper and the task (research understanding, part of 15 %)
 
@@ -279,13 +279,19 @@ budget of 100 epochs; the best epoch is chosen on validation):
 (regular daily and weekly cycles) linear models are as good as LSTNet and LSTNet's own AR part
 does most of the work; on Solar (night zeros, weather, season change) the neural network clearly
 wins and the AR part is not needed. RevIN did not improve RSE on either dataset.
-- **Test set:** used **once**, for the final models only.
+- **Test set:** each model's test result is computed once, with the epoch chosen on validation. Improvement 2 was designed after we had seen test results of other models (see Limitations, section 6).
 
 ## 6 · Evaluation and error analysis (15 %)
 
-- [Metrics that fit the task (not only accuracy): confusion matrix, precision, recall, F1, IoU, …]
-- [Where does the model fail? Examples of its most confident mistakes; which classes are confused, and why]
-- [Limitations: what your results do **not** show]
+- **Metrics that fit the task:** this is regression, so there is no confusion matrix. We use the paper's two metrics because they answer different questions: RSE pools squared errors in original units, so large series and level errors dominate it; CORR is computed per series and ignores level and scale, so every series counts equally. RevIN shows why both are needed: on Electricity it improves CORR and worsens RSE.
+- **Where the models fail:** [to be filled in from `results/error_analysis_electricity_h24.md` and `results/error_analysis_solar_h24.md`, made by `src/error_analysis.py`]
+- **Limitations, what our results do not show:**
+  - *One horizon and one split.* We test horizon 24 only, on one chronological test period. The seeds measure training randomness, not how the models behave in other periods. On Solar-Energy the test period is also a single season.
+  - *Improvement 2 was chosen after seeing test results.* Its idea came from test results of the AR baseline and the ablation, and its hypothesis was written before its own runs. The test set therefore influenced the choice of the idea, so its 2 % gain may be slightly optimistic and should be confirmed on another period.
+  - *No grid search.* We use the authors' final settings and do not repeat their search, so we cannot say that these settings are the best for our improvements.
+  - *Improvement 2 was tested on Electricity only,* and it was not compared statistically with the stand-alone AR model (0.0981).
+  - *The authors' scaling uses the whole series,* test period included. Its effect is small (section 2), but it is a leak.
+  - *The explanations are readings, not proofs.* Why RevIN fails and why Solar-Energy is better without AR were not tested with separate experiments.
 
 ## 7 · Conclusion
 
@@ -296,9 +302,9 @@ models, and the answer depends on the data. On Electricity it does not: a linear
 set of weights per customer and a long window (RSE 0.0981) is as good as LSTNet, and LSTNet loses
 46 % of its accuracy without its own linear AR part. Building that insight into LSTNet, with one
 AR model per customer over the whole week, was our successful improvement: RSE 0.0988 ± 0.0012,
-2 % better than the reproduction and significant over seeds and over test hours (p ≈ 0.02). On Solar it does: LSTNet clearly beats both
-linear models (AR 0.5247, DLinear 0.5740), and the AR part is not even needed. Our first
-improvement, RevIN, did not lower RSE on either dataset (Electricity +5 %, Solar +6 %), although it
+2 % better than the reproduction and significant over seeds and over test hours (p ≈ 0.02). On
+Solar the deep part does earn its complexity: LSTNet clearly beats both linear models (AR 0.5247,
+DLinear 0.5740), and the AR part is not even needed. Our first improvement, RevIN, did not lower RSE on either dataset (Electricity +5 %, Solar +6 %), although it
 improved CORR and stability on Electricity. Next we would analyse where RevIN's extra error comes
 from (section 6), test the per-series AR highway on Solar, and try a one-day skip (144 steps) on
 Solar.
@@ -309,10 +315,45 @@ Solar.
 
 ## 9 · Reproducibility (part of 25 %)
 
-- **Run it:** [the commands or notebook order; the environment, for example `requirements.txt`]
-- **Seeds and hardware:** [seeds used; GPU or CPU; training time]
-- **Where the results come from:** [which notebook/script makes which table and figure]
+- **Run it:** `pip install -r requirements.txt`, then `bash scripts/download_data.sh` (the data is not in the repository) and `pytest tests/`. Training: open `notebooks/03_train_on_colab.ipynb` (Electricity) or `notebooks/03_train_on_colab_solar.ipynb` (Solar-Energy) on Google Colab and run the cells from top to bottom. A single run: `python src/train.py --data electricity --horizon 24 --model lstnet --seed 0`.
+- **Seeds and hardware:** seeds 0–9 for every neural model; the same seed gives the same initial weights and batch order for every model, so runs are paired. Colab with an NVIDIA T4 GPU, about 4 s per epoch and 7 minutes per run on Electricity. Small numeric differences between machines are possible. Runs continue from their last checkpoint if Colab stops.
+- **Where the results come from:**
+
+  | Result | Made by |
+  |---|---|
+  | Figures and numbers of section 2 | `notebooks/01_explore_electricity.ipynb`, `notebooks/01_explore_solar.ipynb` |
+  | Copy-the-past rules and AR | `src/baselines.py` → `results/baselines_<data>_h24.csv` |
+  | One-neuron baseline | `notebooks/02_first_network.ipynb`, `src/neuron_baseline.py` → `results/neuron_<data>_h24.csv` |
+  | Test result of each neural run | `src/train.py` → `results/runs/<run>.json` |
+  | Tables and tests of section 5 | `src/stats.py` → `results/stats_<data>_h24.md` |
+  | The four AR checks of section 3 | `src/check_ar.py` → `results/ar_checks_electricity.md` |
+  | Error analysis of section 6 | `src/error_analysis.py` → `results/error_analysis_<data>_h24.md`, `results/figures/error_by_time_<data>.png` |
+  | The fixed split | `src/save_split.py` → `results/splits.json` |
 
 ## References
 
-[All papers, data sets, code and websites you used.]
+**Papers**
+
+- Lai, G., Chang, W.-C., Yang, Y., Liu, H. (2018). Modeling Long- and Short-Term Temporal Patterns with Deep Neural Networks. *SIGIR 2018.* https://doi.org/10.1145/3209978.3210006
+- Kim, T., Kim, J., Tae, Y., Park, C., Choi, J.-H., Choo, J. (2022). Reversible Instance Normalization for Accurate Time-Series Forecasting against Distribution Shift. *ICLR 2022.*
+- Zeng, A., Chen, M., Zhang, L., Xu, Q. (2023). Are Transformers Effective for Time Series Forecasting? *AAAI 2023.*
+
+**Statistical methods**
+
+- Diebold, F. X., Mariano, R. S. (1995). Comparing Predictive Accuracy. *Journal of Business & Economic Statistics* 13(3), 253–263.
+- Harvey, D., Leybourne, S., Newbold, P. (1997). Testing the Equality of Prediction Mean Squared Errors. *International Journal of Forecasting* 13(2), 281–291.
+- Newey, W. K., West, K. D. (1987). A Simple, Positive Semi-Definite, Heteroskedasticity and Autocorrelation Consistent Covariance Matrix. *Econometrica* 55(3), 703–708.
+- Holm, S. (1979). A Simple Sequentially Rejective Multiple Test Procedure. *Scandinavian Journal of Statistics* 6(2), 65–70.
+- Wilcoxon, F. (1945). Individual Comparisons by Ranking Methods. *Biometrics Bulletin* 1(6), 80–83.
+
+**Data**
+
+- Authors' prepared files: https://github.com/laiguokun/multivariate-time-series-data
+- Electricity: UCI Machine Learning Repository, *ElectricityLoadDiagrams20112014.* https://doi.org/10.24432/C58C86
+- Solar-Energy: NREL, *Solar Power Data for Integration Studies.* https://www.nrel.gov/grid/solar-power-data.html
+
+**Code we read or compared with**
+
+- LSTNet, the authors' code: https://github.com/laiguokun/LSTNet
+- RevIN, the official code: https://github.com/ts-kim/RevIN
+- DLinear, the official code: https://github.com/cure-lab/LTSF-Linear

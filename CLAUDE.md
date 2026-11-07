@@ -190,7 +190,7 @@ CLI goal: `python src/train.py --data electricity --horizon 24 --skip 24 --seed 
 - 2026-10-22: RevIN + DLinear in `src/model.py`; `train.py --model lstnet|lstnet_revin|lstnet_noar|dlinear`;
   `src/stats.py` (table over seeds, paired t-test/Wilcoxon, Diebold-Mariano, Holm); 21 tests pass.
   `notebooks/03_train_on_colab.ipynb` now trains all 4 models x seeds 0-9 (resumable, skips
-  finished runs) and runs the statistics. `report/` has the 29.10 slide outline and report outline.
+  finished runs) and runs the statistics.
 - 2026-10-22 (Dinesh): Solar tasks 1–3 done. `notebooks/01_explore_solar.ipynb` confirms the early
   findings. Solar baselines in `results/experiments.md`: AR per plant L = 512 test RSE 0.5247 /
   CORR 0.8462 (paper AR 0.8699, LSTNet-Skip 0.4643), so on Solar LSTNet must beat 0.5247;
