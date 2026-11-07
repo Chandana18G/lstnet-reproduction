@@ -1,0 +1,8 @@
+{
+  "run": "solar_h24_dlinear_skip24_seed6",
+  "best_epoch": 1,
+  "valid_rse": 0.47069773799446807,
+  "test_rse": 0.5748637579977763,
+  "test_corr": 0.8171323390869343,
+  "series_left_out_of_corr": 0
+}

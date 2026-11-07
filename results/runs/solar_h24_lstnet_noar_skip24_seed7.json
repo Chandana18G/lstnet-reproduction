@@ -1,0 +1,8 @@
+{
+  "run": "solar_h24_lstnet_noar_skip24_seed7",
+  "best_epoch": 6,
+  "valid_rse": 0.36639088200919734,
+  "test_rse": 0.44470395291605996,
+  "test_corr": 0.897222792746766,
+  "series_left_out_of_corr": 0
+}

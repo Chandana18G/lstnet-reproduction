@@ -60,14 +60,15 @@ so none is left out of CORR.
 | Copy: same time yesterday | lag 144 | none needed | 0 | 0.5099 | 0.8648 | 0.6113 | 0.8030 | `src/baselines.py` |
 | **First baseline: one shared neuron** | q = 24, L1 loss, 60 epochs | 0, 1, 2 | 25 | 0.8689 ± 0.0038 | – | 0.8909 ± 0.0035 | 0.4729 ± 0.0059 | `src/neuron_baseline.py` |
 | **AR, one model per plant** | L = 512 chosen on valid from 2⁰…2⁹, least squares | none needed | 70,281 | **0.4064** | **0.9099** | **0.5247** | **0.8462** | `src/baselines.py` |
-| **LSTNet-Skip (reproduction)** | `solar.sh` settings (skip-GRU 10), 100 epochs | 0–9 | – | – | – | **0.4753 ± 0.0249** | 0.8835 ± 0.0098 | `src/train.py`, Colab |
-| LSTNet + RevIN (improvement) | same + RevIN | 0–9 | – | – | – | 0.5055 ± 0.0137 | 0.8578 ± 0.0060 | `src/train.py`, Colab |
-| LSTNet without AR (ablation) | same, no AR part | 0–9 | – | – | – | 0.4529 ± 0.0104 | 0.8922 ± 0.0051 | `src/train.py`, Colab |
-| DLinear (comparison) | window 168, moving average 25 | 0–9 | 338 | – | – | 0.5740 ± 0.0011 | 0.8167 ± 0.0009 | `src/train.py`, Colab |
+| **LSTNet-Skip (reproduction)** | `solar.sh` settings (skip-GRU 10), 100 epochs | 0–9 | – | 0.3745 ± 0.0085 | – | **0.4753 ± 0.0249** | 0.8835 ± 0.0098 | `src/train.py`, Colab |
+| LSTNet + RevIN (improvement) | same + RevIN | 0–9 | – | 0.3983 ± 0.0039 | – | 0.5055 ± 0.0137 | 0.8578 ± 0.0060 | `src/train.py`, Colab |
+| LSTNet without AR (ablation) | same, no AR part | 0–9 | – | 0.3695 ± 0.0070 | – | 0.4529 ± 0.0104 | 0.8922 ± 0.0051 | `src/train.py`, Colab |
+| DLinear (comparison) | window 168, moving average 25 | 0–9 | 338 | 0.4708 ± 0.0009 | – | 0.5740 ± 0.0011 | 0.8167 ± 0.0009 | `src/train.py`, Colab |
 | *Paper: AR* | – | – | – | – | – | *0.8699* | *0.5314* | Table 2 |
 | *Paper: LSTNet-Skip* | – | – | – | – | – | *0.4643* | *0.8870* | Table 2 |
 
 Statistical tests of the neural models: `results/stats_solar_h24.md`.
+The result of every run (valid/test RSE, test CORR, best epoch) is in `results/runs/solar_h24_*.json`.
 
 ## Notes
 
