@@ -45,6 +45,12 @@ dataset. Giving LSTNet one AR model per customer over the whole week improved El
 squared error on Electricity, and without it RevIN is better than LSTNet too (see report, section 6). Statistical tests: [`results/stats_electricity_h24.md`](results/stats_electricity_h24.md),
 [`results/stats_solar_h24.md`](results/stats_solar_h24.md); full write-up: [`report.md`](report.md).
 
+## Results and checkpoints
+
+- Test result of every run: [`results/runs/`](results/runs) (one `.json` per model and seed).
+- Best checkpoints (`.pt`) and test predictions (`.npy`) are too big for GitHub:
+  [Electricity, Google Drive](https://drive.google.com/drive/folders/1qYeRl8aC5b4PAMzLaBK3ZAr2Sv9-4tPO?usp=sharing).
+
 ## Status
 
 - [x] Data downloaded and explored (Electricity and Solar notebooks 01)
