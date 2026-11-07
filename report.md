@@ -82,8 +82,8 @@ We forecast all series of a multivariate time series one value 24 steps ahead an
 
 | | |
 |---|---|
-| Source and version | Authors' repository `laiguokun/multivariate-time-series-data`, file `solar-energy/solar_AL.txt.gz` (last commit 7f402f1, 09.04.2017), downloaded 22.10.2026 with `scripts/download_data.sh`. Raw data: NREL *Solar Power Data for Integration Studies*, PV plants in Alabama, 2006 (paper Sec. 4.3). |
-| Licence | NREL publishes the data openly for research. The authors' copy has no licence file of its own; we cite NREL and the authors. [Dinesh: confirm the exact terms on the NREL page.] |
+| Source and version | Authors' repository `laiguokun/multivariate-time-series-data`, file `solar-energy/solar_AL.txt.gz` (last commit 7f402f1, 09.04.2017), downloaded 22.10.2026 with `scripts/download_data.sh`. Raw data: NREL *Solar Power Data for Integration Studies* (paper Sec. 4.3): **synthetic** PV output of simulated plants for the weather of 2006, published as 5-minute data per US state; the authors used the Alabama plants at 10 minutes. NREL is now called the National Laboratory of the Rockies (NLR); the page moved to nlr.gov (checked 07.11.2026). |
+| Licence | The NLR data terms (www.nlr.gov/disclaimer, checked 07.11.2026) allow anyone to use and copy the data free of charge, provided the notice is kept and DOE/NLR is credited in any publication; the data come "as is", with no warranty. NLR also says the data should not be used for site-specific project work. The authors' copy has no licence file of its own; we credit DOE/NREL (now NLR) and the authors. |
 | Size | 52,560 time steps (every 10 minutes, one year) × 137 plants, no missing values. One sample = 168 steps (28 hours) × 137 plants (input) → 137 values (target). |
 | Classes or targets | Regression, no classes: the target is the output (MW) of every plant 24 steps (4 hours) after the input window. Instead of class balance: plant means range from 1.6 to 19.1 MW (factor ~12); 55.1 % of all values are 0 (night; at 49.5 % of steps all plants are 0); no constant plant. Strong daily cycle (median autocorrelation 0.85 at 144 steps = one day), weak at the horizon (0.32 at 24 steps). |
 | Splits | By time, 60 / 20 / 20 as in the paper: training days 0–219 (January to early August, ~31,300 samples), validation days 219–292 (10,512), test days 292–365 (late October to December, 10,512). Why: as for Electricity; in addition, the split is a season split, and only a split by time shows whether the model handles a season it has not seen. |
@@ -189,6 +189,20 @@ with the same weights for all customers; we give every customer its own weights 
   window) already reaches RSE 0.0981, better than LSTNet's 0.1008, **we expect** a per-customer
   168-h AR highway **to improve** the test RSE at horizon 24 **by about** 2–4 %
   (0.1008 → about 0.098, mean over 10 seeds).
+
+**Improvement 2 (Solar-Energy, after the mid-course feedback):** RevIN did not help on Solar
+either, so we change the part of LSTNet that is meant to catch periodic patterns, the skip-GRU.
+The paper uses a skip of p = 24 steps, which on Solar is only 4 hours; the paper tuned p only
+between 2 and 64, so it never compares a moment with the same moment on the day before. We set
+p = 144 (one day). A skip sequence has `(q − 6) // p` steps, so with the paper's window q = 168 it
+would hold only one step; we therefore use q = 438 (3 days + 6) to get 3 steps per sequence: the
+same time today, yesterday and the day before (`lstnet_skip144`). Everything else stays the same.
+
+- **Solar-Energy (Dinesh):** **Because** Solar repeats itself every day (median autocorrelation
+  0.85 at 144 steps and still 0.82 at 288 and 432 steps, but only 0.32 at 24 steps) and our AR
+  baseline became much better as soon as its window reached one day back, **we expect** a one-day
+  skip with a 3-day window **to improve** the test RSE at horizon 24 **by about** 2–5 %
+  (0.4753 → about 0.455, mean over 10 seeds).
 
 Comparisons (not improvements): AR (one linear model per series), DLinear (Zeng et al., AAAI
 2023) and the paper's "LSTNet without AR" ablation.
@@ -387,7 +401,7 @@ We used **Claude Code** (Anthropic) for programming, debugging, explanations and
 
 - Authors' prepared files: https://github.com/laiguokun/multivariate-time-series-data
 - Electricity: UCI Machine Learning Repository, *ElectricityLoadDiagrams20112014.* https://doi.org/10.24432/C58C86
-- Solar-Energy: NREL, *Solar Power Data for Integration Studies.* https://www.nrel.gov/grid/solar-power-data.html
+- Solar-Energy: NREL (now National Laboratory of the Rockies, NLR), U.S. Department of Energy, *Solar Power Data for Integration Studies.* https://www.nlr.gov/grid/solar-power-data (accessed 07.11.2026)
 
 **Code we read or compared with**
 
