@@ -302,6 +302,18 @@ LSTNet + per-customer AR is 0.0020 ± 0.0021 better in RSE than LSTNet-Skip, on 
     the change of season, which make a fixed linear rule on the last 4 hours misleading.
   - **Here the deep part does earn its complexity:** LSTNet clearly beats both linear models
     (AR 0.5247, DLinear 0.5740; DM p < 0.0001).
+  - **The one-day skip (improvement 2) helps on average, but we cannot call it a real
+    improvement yet.** The mean test RSE drops from 0.4753 to 0.4551 (4 % better), which is close
+    to what we predicted (about 0.455). But it beats LSTNet on only 5 of the 10 seeds. Most of the
+    gain comes from three seeds where LSTNet did badly (seeds 4, 8 and 9, RSE 0.49 to 0.52); on
+    the other seeds the two models are about the same. So none of the tests is significant
+    (paired t-test Holm p = 0.147, Wilcoxon p = 0.23, DM p = 0.57). What the one-day skip clearly
+    does is make training more stable: the spread over seeds is less than half (std 0.0107 vs
+    0.0249). DM uses the forecasts averaged over the seeds, and averaging already hides most of
+    LSTNet's bad seeds, so DM sees almost no difference (seed-averaged RSE 0.4405 vs 0.4444).
+    Also, the model has 1.85 times more parameters (357,402 vs 193,002) and looks back 3 days
+    instead of 28 hours, so even this small gain may come from the bigger model and the longer
+    window, not from the skip itself.
 
 **Both datasets together:** the answer to our question depends on the data. On Electricity
 (regular daily and weekly cycles) linear models are as good as LSTNet and LSTNet's own AR part
@@ -322,12 +334,22 @@ wins and the AR part is not needed. RevIN did not improve RSE on either dataset.
 
   ![Electricity: squared error by hour of the day](results/figures/error_by_time_electricity.png)
 
-- **Where the models fail, Solar-Energy:** [Dinesh: from `results/error_analysis_solar_h24.md`, made by the same script]
+- **Where the models fail, Solar-Energy** (same script, `results/error_analysis_solar_h24.md`; forecasts averaged over the seeds):
+  - **The error is in the daytime, mostly before noon.** The hours 08–12 make 58 % of LSTNet's squared error and 12–16 another 37 %. Nights make almost nothing: 56 % of the test steps are night with all plants at 0, but they give only 0.6 % of the error. So the night zeros we were worried about are easy for the models. The hard part is guessing how much sun there will be 4 hours later.
+  - **The worst moments are short weather events.** The worst 1 % of test steps hold 13.1 % of the error, and the 5 worst steps come one after another (steps 47878–47882, around noon). This looks like one sudden change in the weather, such as clouds, that no model could see 4 hours before.
+  - **No single plant dominates, unlike Electricity.** The largest plant (#5) makes 4.9 % of the error, and the 10 largest plants make 33 % (they produce 16.4 % of the output). The median correlation per plant is 0.897 and even the worst plant reaches 0.864. So on Solar the RSE is a fair summary of all plants.
+  - **The level shift does not explain the errors.** The 123 plants whose level changes by more than 20 % make 83.5 % of the error, a bit less than their share of the plants (90 %). This fits the result that RevIN, which targets the level shift, did not help.
+  - **How the models differ.** RevIN has the largest error in the morning (figure below) and is worse than LSTNet on 127 of 137 plants. LSTNet without AR is better on 136 of 137 plants, so its gain is spread over almost all plants. The one-day skip is better on only 62 of 137 plants: a bit lower around 11–13 h, a bit higher around 9–11 h, so overall it is close to LSTNet.
+  - As for Electricity, the hours assume that the file starts at midnight.
+
+  ![Solar-Energy: squared error by hour of the day](results/figures/error_by_time_solar.png)
+
 - **Limitations, what our results do not show:**
   - *One horizon and one split.* We test horizon 24 only, on one chronological test period. The seeds measure training randomness, not how the models behave in other periods. On Solar-Energy the test period is also a single season.
   - *Improvement 2 was chosen after seeing test results.* Its idea came from test results of the AR baseline and the ablation, and its hypothesis was written before its own runs. The test set therefore influenced the choice of the idea, so its 2 % gain may be slightly optimistic and should be confirmed on another period.
   - *No grid search.* We use the authors' final settings and do not repeat their search, so we cannot say that these settings are the best for our improvements.
-  - *Improvement 2 was tested on Electricity only,* and it was not compared statistically with the stand-alone AR model (0.0981).
+  - *The one-day skip on Solar changes three things at once:* the skip (24 → 144), the window (168 → 438) and the number of parameters. A run with window 438 and skip 24 would show which change matters; we did not have time for it.
+  - *The per-customer AR (Electricity improvement 2) was tested on Electricity only,* and it was not compared statistically with the stand-alone AR model (0.0981).
   - *The authors' scaling uses the whole series,* test period included. Its effect is small (section 2), but it is a leak.
   - *RSE depends heavily on one customer.* Our Electricity ranking is largely a ranking on #313, so differences of a few percent say little about the typical customer.
   - *The explanations are readings, not proofs.* Why RevIN hurts on the largest customers and why Solar-Energy is better without AR were not tested with separate experiments.
@@ -346,8 +368,10 @@ Solar the deep part does earn its complexity: LSTNet clearly beats both linear m
 DLinear 0.5740), and the AR part is not even needed. Our first improvement, RevIN, did not lower RSE on either dataset (Electricity +5 %, Solar +6 %), although it
 improved CORR and stability on Electricity. The error analysis shows why: one customer makes 85 %
 of LSTNet's squared error on Electricity, RevIN is better on 299 of 321 customers, and its overall
-loss comes from the largest ones. Next we would repeat that comparison on another period, test the
-per-series AR highway on Solar, and try a one-day skip (144 steps) on Solar.
+loss comes from the largest ones. On Solar we also tried a one-day skip (144 steps with a 3-day
+window): it lowered the mean RSE by 4 % and made training more stable, but the gain was not
+significant. Next we would repeat the comparisons on another period, test the per-series AR
+highway on Solar, and check whether the skip or simply the longer window causes that small gain.
 
 ## 8 · Use of AI tools (5 %)
 
