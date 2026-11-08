@@ -3,11 +3,13 @@
 **Deep Learning · M.Sc. Applied Data Science and AI · SRH University Munich · Winter semester 2026/27**
 **Author(s):** Chandana Gurusiddappa (Electricity), Dineshkumar Swaminathan (Solar-Energy) · **Repository:** https://github.com/Chandana18G/lstnet-reproduction · **Date:** 08.11.2026
 
+**Who did which part:** Chandana Gurusiddappa did everything on Electricity (exploration, reproduction, improvements in `improvement_chandana/`, comparisons, statistics, error analysis) and wrote the shared code in `src/` and `tests/`. Dineshkumar Swaminathan did everything on Solar-Energy (exploration, reproduction, improvements in `improvement_dinesh/`, comparisons, statistics, error analysis) and added the one-day skip to the shared statistics and error-analysis scripts. In each section, the parts marked *Electricity (Chandana)* and *Solar-Energy (Dinesh)* were written by that person; the other sections were written together. Both of us can explain all the shared code.
+
 ---
 
 ## Abstract
 
-We forecast all series of a multivariate time series one value 24 steps ahead and reproduce LSTNet-Skip (Lai et al., SIGIR 2018) on Electricity (321 customers, hourly) and Solar-Energy (137 PV plants, every 10 minutes). With the authors' settings and 10 seeds we reach test RSE 0.1008 ± 0.0018 on Electricity (paper 0.1007) and 0.4753 ± 0.0249 on Solar-Energy (paper 0.4643). Our first improvement, RevIN, made RSE worse on both datasets (+5 % and +6 %). Our second, one AR model per customer over the whole 168-hour window, lowers Electricity RSE by 2 % to 0.0988 ± 0.0012 (paired t-test p = 0.026, Diebold–Mariano p = 0.022, Holm-corrected). Comparisons with linear models show that the deep part does not clearly earn its complexity on Electricity, but does on Solar-Energy.
+We forecast all series of a multivariate time series one value 24 steps ahead and reproduce LSTNet-Skip (Lai et al., SIGIR 2018) on Electricity (321 customers, hourly) and Solar-Energy (137 PV plants, every 10 minutes). With the authors' settings and 10 seeds we reach test RSE 0.1008 ± 0.0018 on Electricity (paper 0.1007) and 0.4753 ± 0.0249 on Solar-Energy (paper 0.4643). Our first improvement, RevIN, made RSE worse on both datasets (+5 % and +6 %). Our second, one AR model per customer over the whole 168-hour window, lowers Electricity RSE by 2 % to 0.0988 ± 0.0012 (paired t-test p = 0.026, Diebold–Mariano p = 0.022, Holm-corrected). On Solar-Energy, a one-day skip (144 steps, 3-day window) lowers the mean RSE by 4 % to 0.4551 ± 0.0107, but not significantly (Holm p = 0.15). Comparisons with linear models show that the deep part does not clearly earn its complexity on Electricity, but does on Solar-Energy.
 
 ## 1 · The paper and the task (research understanding, part of 15 %)
 
