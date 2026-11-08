@@ -59,7 +59,7 @@ We forecast all series of a multivariate time series one value 24 steps ahead an
 
   *Source: Lai et al. 2018, Table 2.*
 
-## 2 · The data (start this week)
+## 2 · The data
 
 ### Electricity (Chandana)
 
@@ -99,6 +99,9 @@ We forecast all series of a multivariate time series one value 24 steps ahead an
 ![Solar: change in level from training to test](results/figures/solar_level_shift.png)
 *Figure 4. Solar-Energy: every plant produces less in the test period (winter); median ratio 0.71.*
 
+![Solar: autocorrelation](results/figures/solar_autocorrelation.png)
+*Figure 5. Solar-Energy: autocorrelation (training part). Peaks every 144 steps (one day: 0.85, 0.82, 0.82), but only 0.32 at our horizon of 24 steps.*
+
 ## 3 · Reproducing the baseline (part of 15 %, and 25 % implementation)
 
 **The recipe**, read from the paper and the authors' code (github.com/laiguokun/LSTNet: `main.py`,
@@ -108,7 +111,7 @@ We forecast all series of a multivariate time series one value 24 steps ahead an
 | | The paper says | Where (page, table, code) | What we use |
 |---|---|---|---|
 | Data: version, split | Electricity: 321 clients, hourly, 2012–2014. Solar-Energy: 137 PV plants, 10 min, 2006. Split 60 / 20 / 20 in chronological order. | Sec. 4.3 (p. 99), Table 1 (p. 100); `utils.py` | The authors' published files (section 2); the same 60 / 20 / 20 split by time, decided by the target time step. |
-| Model: layers, sizes, pretrained? | LSTNet-Skip: convolution → GRU + skip-GRU → dense, plus a linear AR component. Sizes chosen by grid search: window q from 2⁰…2⁹, CNN/GRU hidden {50, 100, 200}, skip-GRU hidden {20, 50, 100}, skip p = 24 (Electricity), tuned 2…64 (Solar). Not pretrained. CNN filter width, AR window: **not stated**. | Sec. 3.2–3.6 (p. 97–98), Sec. 4.4 (p. 100) | The authors' run scripts: window 168, CNN 100 filters of width 6, GRU 100, skip 24, skip-GRU 5 (Electricity) / 10 (Solar), AR window 24, dropout 0.2, no output activation. 325,871 parameters for Electricity. A test shows our forward pass equals the authors' code (`tests/test_model.py`). Not pretrained. |
+| Model: layers, sizes, pretrained? | LSTNet-Skip: convolution → GRU + skip-GRU → dense, plus a linear AR component. Sizes chosen by grid search: window q from 2⁰…2⁹, CNN/GRU hidden {50, 100, 200}, skip-GRU hidden {20, 50, 100}, skip p = 24 (Electricity), tuned 2…64 (Solar). Not pretrained. CNN filter width, AR window: **not stated**. | Sec. 3.2–3.6 (p. 97–98), Sec. 4.4 (p. 100) | The authors' run scripts: window 168, CNN 100 filters of width 6, GRU 100, skip 24, skip-GRU 5 (Electricity) / 10 (Solar), AR window 24, dropout 0.2, no output activation. 325,871 parameters for Electricity, 193,002 for Solar-Energy. A test shows our forward pass equals the authors' code (`tests/test_model.py`). Not pretrained. |
 | Training: optimiser, learning rate, schedule | Adam. Learning rate and schedule **not stated**. Dropout 0.1 or 0.2. Loss: L1 or squared, chosen on validation. | Sec. 3.7–3.8 (p. 98–99), Sec. 4.4 (p. 100); code: `main.py` | Adam, learning rate 0.001, no schedule, gradient clipping to norm 10, dropout 0.2, L1 loss (the code's default) **summed and computed in original units** (prediction × scale vs target × scale), as in `main.py`. |
 | Training: epochs, batch size | **Not stated.** | code: `main.py` defaults | 100 epochs, batch size 128; we keep the weights of the epoch with the best validation RSE (as `main.py`). |
 | Augmentation and preprocessing | No augmentation. Normalisation **not stated** in the paper. | code: `utils.py` (`normalize=2`) | No augmentation. Each series divided by its maximum absolute value over the whole series (as the code); see section 2 for the leak this causes and its size. |
@@ -308,7 +311,7 @@ LSTNet + per-customer AR is 0.0020 ± 0.0021 better in RSE than LSTNet-Skip, on 
     improvement yet.** The mean test RSE drops from 0.4753 to 0.4551 (4 % better), which is close
     to what we predicted (about 0.455). But it beats LSTNet on only 5 of the 10 seeds. Most of the
     gain comes from three seeds where LSTNet did badly (seeds 4, 8 and 9, RSE 0.49 to 0.52); on
-    the other seeds the two models are about the same. So none of the tests is significant
+    four seeds the one-day skip is slightly worse (by 0.003 to 0.013). So none of the tests is significant
     (paired t-test Holm p = 0.147, Wilcoxon p = 0.23, DM p = 0.57). What the one-day skip clearly
     does is make training more stable: the spread over seeds is less than half (std 0.0107 vs
     0.0249). DM uses the forecasts averaged over the seeds, and averaging already hides most of
@@ -317,11 +320,30 @@ LSTNet + per-customer AR is 0.0020 ± 0.0021 better in RSE than LSTNet-Skip, on 
     instead of 28 hours, so even this small gain may come from the bigger model and the longer
     window, not from the skip itself.
 
+**Improvement 2 on Solar against the baseline, seed by seed** (same seed = same start and batch order):
+
+| Seed | LSTNet-Skip | One-day skip | Difference |
+|---|---|---|---|
+| 0 | 0.4797 | 0.4538 | −0.0259 |
+| 1 | 0.4460 | 0.4497 | +0.0037 |
+| 2 | 0.4677 | 0.4709 | +0.0033 |
+| 3 | 0.4530 | 0.4663 | +0.0132 |
+| 4 | 0.4933 | 0.4453 | −0.0479 |
+| 5 | 0.4656 | 0.4706 | +0.0050 |
+| 6 | 0.4789 | 0.4566 | −0.0223 |
+| 7 | 0.4449 | 0.4486 | +0.0038 |
+| 8 | 0.5191 | 0.4411 | −0.0780 |
+| 9 | 0.5047 | 0.4476 | −0.0571 |
+| **mean ± std** | **0.4753 ± 0.0249** | **0.4551 ± 0.0107** | **−0.0202** |
+
+The one-day skip never goes above 0.471, while LSTNet goes up to 0.519 on its worst seed. When
+LSTNet trains well (seeds 1, 2, 3, 5, 7), the one-day skip is slightly worse.
+
 **Both datasets together:** the answer to our question depends on the data. On Electricity
 (regular daily and weekly cycles) linear models are as good as LSTNet and LSTNet's own AR part
 does most of the work; on Solar (night zeros, weather, season change) the neural network clearly
 wins and the AR part is not needed. RevIN did not improve RSE on either dataset.
-- **Test set:** each model's test result is computed once, with the epoch chosen on validation. Improvement 2 was designed after we had seen test results of other models (see Limitations, section 6).
+- **Test set:** each model's test result is computed once, with the epoch chosen on validation. Both versions of improvement 2 were designed after we had seen test results of other models (see Limitations, section 6).
 
 ## 6 · Evaluation and error analysis (15 %)
 
@@ -348,7 +370,8 @@ wins and the AR part is not needed. RevIN did not improve RSE on either dataset.
 
 - **Limitations, what our results do not show:**
   - *One horizon and one split.* We test horizon 24 only, on one chronological test period. The seeds measure training randomness, not how the models behave in other periods. On Solar-Energy the test period is also a single season.
-  - *Improvement 2 was chosen after seeing test results.* Its idea came from test results of the AR baseline and the ablation, and its hypothesis was written before its own runs. The test set therefore influenced the choice of the idea, so its 2 % gain may be slightly optimistic and should be confirmed on another period.
+  - *The Solar one-day skip was chosen after RevIN had failed on the Solar test set.* Its idea came from the autocorrelation and the AR validation results, and its hypothesis was written before its own runs.
+  - *Electricity improvement 2 was chosen after seeing test results.* Its idea came from test results of the AR baseline and the ablation, and its hypothesis was written before its own runs. The test set therefore influenced the choice of the idea, so its 2 % gain may be slightly optimistic and should be confirmed on another period.
   - *No grid search.* We use the authors' final settings and do not repeat their search, so we cannot say that these settings are the best for our improvements.
   - *The one-day skip on Solar changes three things at once:* the skip (24 → 144), the window (168 → 438) and the number of parameters. A run with window 438 and skip 24 would show which change matters; we did not have time for it.
   - *The per-customer AR (Electricity improvement 2) was tested on Electricity only,* and it was not compared statistically with the stand-alone AR model (0.0981).
@@ -395,7 +418,7 @@ We used **Claude Code** (Anthropic) for programming, debugging, explanations and
 ## 9 · Reproducibility (part of 25 %)
 
 - **Run it:** `pip install -r requirements.txt`, then `bash scripts/download_data.sh` (the data is not in the repository) and `pytest tests/`. Training: open `notebooks/03_train_on_colab.ipynb` (Electricity) or `notebooks/03_train_on_colab_solar.ipynb` (Solar-Energy) on Google Colab and run the cells from top to bottom. A single run: `python src/train.py --data electricity --horizon 24 --model lstnet --seed 0`.
-- **Seeds and hardware:** seeds 0–9 for every neural model; the same seed gives the same initial weights and batch order for every model, so runs are paired. Colab with an NVIDIA T4 GPU, about 4 s per epoch and 7 minutes per run on Electricity. Small numeric differences between machines are possible. Runs continue from their last checkpoint if Colab stops. Checkpoints and test predictions are too big for GitHub: [Electricity, Google Drive](https://drive.google.com/drive/folders/1qYeRl8aC5b4PAMzLaBK3ZAr2Sv9-4tPO?usp=sharing).
+- **Seeds and hardware:** seeds 0–9 for every neural model; the same seed gives the same initial weights and batch order for every model, so runs are paired. Colab with an NVIDIA T4 GPU, about 4 s per epoch and 7 minutes per run on Electricity; on Solar-Energy the one-day skip takes about 11 s per epoch (about 20 minutes per run). Small numeric differences between machines are possible. Runs continue from their last checkpoint if Colab stops. Checkpoints and test predictions are too big for GitHub: [Electricity, Google Drive](https://drive.google.com/drive/folders/1qYeRl8aC5b4PAMzLaBK3ZAr2Sv9-4tPO?usp=sharing).
 - **Where the results come from:**
 
   | Result | Made by |
