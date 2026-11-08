@@ -56,7 +56,7 @@ squared error on Electricity, and without it RevIN is better than LSTNet too (se
 
 - Test result of every run: [`results/runs/`](results/runs) (one `.json` per model and seed).
 - Best checkpoints (`.pt`) and test predictions (`.npy`) are too big for GitHub:
-  [Electricity, Google Drive](https://drive.google.com/drive/folders/1qYeRl8aC5b4PAMzLaBK3ZAr2Sv9-4tPO?usp=sharing).
+  [Electricity, Google Drive](https://drive.google.com/drive/folders/1qYeRl8aC5b4PAMzLaBK3ZAr2Sv9-4tPO?usp=sharing), [Solar-Energy, Google Drive](https://drive.google.com/drive/folders/1YipNMjUJ2t2BWB4RhYUfIwsZpXMSZool?usp=sharing).
 
 ## Status
 

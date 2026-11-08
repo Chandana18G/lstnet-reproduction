@@ -46,6 +46,8 @@ worse than LSTNet.
 
 ## My files
 
+Checkpoints (`.pt`) and test predictions (`.npy`) of all Solar runs: [Solar-Energy, Google Drive](https://drive.google.com/drive/folders/1YipNMjUJ2t2BWB4RhYUfIwsZpXMSZool?usp=sharing).
+
 | File | What it is |
 |---|---|
 | [`notebooks/01_explore_solar.ipynb`](../notebooks/01_explore_solar.ipynb) | Data exploration of Solar |
