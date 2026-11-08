@@ -27,7 +27,7 @@ handling scale shift directly (RevIN) make the deep part worth its complexity?
 | Own improvement | 1. RevIN against level shifts; 2. one AR model per customer over 168 h | 1. RevIN for the winter test period; 2. a one-day skip (p = 144) with a 3-day window |
 | Improvement folder | [`improvement_chandana/`](improvement_chandana) | [`improvement_dinesh/`](improvement_dinesh) |
 | Comparisons, statistics, error analysis | Electricity | Solar-Energy |
-| Shared code (`src/`, `tests/`) | wrote it | added the one-day skip to `stats.py` and `error_analysis.py` |
+| Shared code (`src/`, `tests/`) | responsible for it (drafted with Claude Code, see report section 8) | added the one-day skip to `stats.py` and `error_analysis.py` |
 | Report | Electricity parts, shared sections | Solar-Energy parts |
 
 Both of us have reviewed all the shared code and can explain it.

@@ -3,7 +3,7 @@
 **Deep Learning · M.Sc. Applied Data Science and AI · SRH University Munich · Winter semester 2026/27**
 **Author(s):** Chandana Gurusiddappa (Electricity), Dineshkumar Swaminathan (Solar-Energy) · **Repository:** https://github.com/Chandana18G/lstnet-reproduction · **Date:** 08.11.2026
 
-**Who did which part:** Chandana Gurusiddappa did everything on Electricity (exploration, reproduction, improvements in `improvement_chandana/`, comparisons, statistics, error analysis) and wrote the shared code in `src/` and `tests/`. Dineshkumar Swaminathan did everything on Solar-Energy (exploration, reproduction, improvements in `improvement_dinesh/`, comparisons, statistics, error analysis) and added the one-day skip to the shared statistics and error-analysis scripts. In each section, the parts marked *Electricity (Chandana)* and *Solar-Energy (Dinesh)* were written by that person; the other sections were written together. Both of us can explain all the shared code.
+**Who did which part:** Chandana Gurusiddappa did everything on Electricity (exploration, reproduction, improvements in `improvement_chandana/`, comparisons, statistics, error analysis) and was responsible for the shared code in `src/` and `tests/` (drafted with Claude Code, see section 8). Dineshkumar Swaminathan did everything on Solar-Energy (exploration, reproduction, improvements in `improvement_dinesh/`, comparisons, statistics, error analysis) and added the one-day skip to the shared statistics and error-analysis scripts. In each section, the parts marked *Electricity (Chandana)* and *Solar-Energy (Dinesh)* were prepared by that person; the other sections were prepared together (see section 8 for the use of AI tools). Both of us can explain all the shared code.
 
 ---
 
@@ -117,7 +117,7 @@ We forecast all series of a multivariate time series one value 24 steps ahead an
 | Augmentation and preprocessing | No augmentation. Normalisation **not stated** in the paper. | code: `utils.py` (`normalize=2`) | No augmentation. Each series divided by its maximum absolute value over the whole series (as the code); see section 2 for the leak this causes and its size. |
 | Metric, and how it was averaged | RSE: squared error pooled over all series and test steps, relative to the spread of the test targets. CORR: Pearson correlation per series, averaged over series. | Sec. 4.2, Eq. 10–11 (p. 99); code: `evaluate()` in `main.py` | The same, in original units (`src/metrics.py`). Series with zero variance in the test targets are left out of CORR, as in the code (Electricity: 1 customer; Solar: none). |
 
-- **Setup:** Python and PyTorch (laptop: Python 3.14, PyTorch 2.12 on CPU; Colab: the PyTorch version preinstalled on Colab in October–November 2026, not recorded, on an NVIDIA T4 GPU), NumPy, SciPy. Electricity, horizon 24, uses the settings of the authors' `ele.sh`; Solar uses `solar.sh` but with horizon 24 (see below). 10 seeds per model (0–9); same seed = same initial weights and batch order.
+- **Setup:** Python and PyTorch (laptop: Python 3.14, PyTorch 2.12 on CPU; Colab: the PyTorch version preinstalled on Colab in October–November 2026, not recorded, on an NVIDIA T4 GPU), NumPy, SciPy. Electricity, horizon 24, uses the settings of the authors' `ele.sh`; Solar uses `solar.sh` but with horizon 24 (see below). 10 seeds per model (0–9); for the details of what the same seed keeps equal, see the statistical comparison in section 5.
 - **What the paper did not say,** and what we chose instead:
   - learning rate, epochs, batch size, gradient clipping, CNN filter width, AR window, normalisation → the authors' code defaults (0.001, 100, 128, 10, 6, 24, divide by maximum);
   - the final hyperparameters of the grid search → the authors' run scripts; we do **not** repeat the grid search;
@@ -182,8 +182,8 @@ stays the same as in the reproduction.
   20 % between training and test, **we expect** RevIN **to improve** the test RSE at horizon 24
   **by about** 1–3 % (0.101 → 0.099, mean over 10 seeds).
 - **Solar-Energy (Dinesh):** **Because** every plant produces about 29 % less in the winter test
-  period, **we expect** RevIN **to improve** the test RSE at horizon 24 **by about** 3–5 %
-  (0.464 → 0.445, mean over 10 seeds).
+  period, **we expect** RevIN **to improve** the test RSE at horizon 24 (mean over 10 seeds). We did not
+  fix the size of the expected gain before the runs.
 
 **Improvement 2 (Electricity, after the mid-course feedback):** RevIN did not help, so we change
 the part that matters most on Electricity, the AR highway. In the paper it uses the last 24 h
@@ -230,8 +230,10 @@ budget of 100 epochs; the best epoch is chosen on validation):
 | *Paper: LSTNet-Skip* | *0.1007* | – | *0.9119* | – |
 
 - **Statistical comparison** (`src/stats.py`; Holm-corrected over all comparisons with LSTNet):
-  - *Over seeds:* paired t-test and Wilcoxon signed-rank test, seed k against seed k (same seed =
-    same initial weights and batch order).
+  - *Over seeds:* paired t-test and Wilcoxon signed-rank test, seed k against seed k. The same seed
+    gives the same batch order. RevIN and the model without AR also start from the same weights as
+    LSTNet. The per-customer AR model does not: `train.py` builds another model first, which uses up
+    random numbers, so its layers start from different weights. Its pairs share only the batch order.
   - *Over test hours:* Diebold–Mariano test on the squared error per hour (summed over customers),
     using the forecast averaged over the 10 seeds; Newey–West variance with lag h − 1 = 23 and the
     Harvey–Leybourne–Newbold correction.
@@ -320,7 +322,7 @@ LSTNet + per-customer AR is 0.0020 ± 0.0021 better in RSE than LSTNet-Skip, on 
     instead of 28 hours, so even this small gain may come from the bigger model and the longer
     window, not from the skip itself.
 
-**Improvement 2 on Solar against the baseline, seed by seed** (same seed = same start and batch order):
+**Improvement 2 on Solar against the baseline, seed by seed** (the same seed, but the longer window changes the training examples, so the batch order is not the same):
 
 | Seed | LSTNet-Skip | One-day skip | Difference |
 |---|---|---|---|
@@ -418,7 +420,7 @@ We used **Claude Code** (Anthropic) for programming, debugging, explanations and
 ## 9 · Reproducibility (part of 25 %)
 
 - **Run it:** `pip install -r requirements.txt`, then `bash scripts/download_data.sh` (the data is not in the repository) and `pytest tests/`. Training: open `notebooks/03_train_on_colab.ipynb` (Electricity) or `notebooks/03_train_on_colab_solar.ipynb` (Solar-Energy) on Google Colab and run the cells from top to bottom. A single run: `python src/train.py --data electricity --horizon 24 --model lstnet --seed 0`.
-- **Seeds and hardware:** seeds 0–9 for every neural model; the same seed gives the same initial weights and batch order for every model, so runs are paired. Colab with an NVIDIA T4 GPU, about 4 s per epoch and 7 minutes per run on Electricity; on Solar-Energy the one-day skip takes about 11 s per epoch (about 20 minutes per run). Small numeric differences between machines are possible. Runs continue from their last checkpoint if Colab stops. Checkpoints and test predictions are too big for GitHub: [Electricity, Google Drive](https://drive.google.com/drive/folders/1qYeRl8aC5b4PAMzLaBK3ZAr2Sv9-4tPO?usp=sharing), [Solar-Energy, Google Drive](https://drive.google.com/drive/folders/1YipNMjUJ2t2BWB4RhYUfIwsZpXMSZool?usp=sharing).
+- **Seeds and hardware:** seeds 0–9 for every neural model; models with the same seed are compared as pairs (section 5 says what the seed keeps equal). Colab with an NVIDIA T4 GPU, about 4 s per epoch and 7 minutes per run on Electricity; on Solar-Energy the one-day skip takes about 11 s per epoch (about 20 minutes per run). Small numeric differences between machines are possible. Runs continue from their last checkpoint if Colab stops. Checkpoints and test predictions are too big for GitHub: [Electricity, Google Drive](https://drive.google.com/drive/folders/1qYeRl8aC5b4PAMzLaBK3ZAr2Sv9-4tPO?usp=sharing), [Solar-Energy, Google Drive](https://drive.google.com/drive/folders/1YipNMjUJ2t2BWB4RhYUfIwsZpXMSZool?usp=sharing).
 - **Where the results come from:**
 
   | Result | Made by |

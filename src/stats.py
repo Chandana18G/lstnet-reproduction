@@ -1,8 +1,8 @@
 """Results table over seeds and statistical tests: is a model really better than LSTNet?
 
 Two tests for each comparison "model vs LSTNet":
-  1. Over seeds: test RSE of seed k of the model vs seed k of LSTNet (same seed = same start and
-     batch order), paired t-test and Wilcoxon signed-rank test. Needs >= 6 seeds for Wilcoxon
+  1. Over seeds: test RSE of seed k of the model vs seed k of LSTNet (same seed = same batch order
+     for models with the same window; see report section 5), paired t-test and Wilcoxon signed-rank test. Needs >= 6 seeds for Wilcoxon
      to be able to reach p < 0.05; we use 10.
   2. Diebold-Mariano: over the test hours. For each hour the loss = squared error summed over
      series, using the forecast averaged over the seeds. Neighbouring hours are correlated, so
