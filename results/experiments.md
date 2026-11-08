@@ -16,6 +16,7 @@ and AR (least squares) have no randomness, so every seed gives the same number.
 | **LSTNet-Skip (reproduction)** | authors' settings, 100 epochs | 0–9 | 325,871 | – | – | **0.1008 ± 0.0018** | 0.9070 ± 0.0062 | `src/train.py`, Colab |
 | LSTNet + RevIN (improvement 1) | same + RevIN | 0–9 | 326,513 | – | – | 0.1060 ± 0.0014 | 0.9172 ± 0.0010 | `src/train.py`, Colab |
 | **LSTNet + per-customer AR, 168 h (improvement 2)** | same, AR with own weights per customer over the whole window | 0–9 | 380,095 | – | – | **0.0988 ± 0.0012** | **0.9246 ± 0.0019** | `src/train.py`, Colab |
+| LSTNet, one-day skip (improvement 2) | same, skip 144, window 438 | 0–9 | 357,402 | 0.3708 ± 0.0076 | – | 0.4551 ± 0.0107 | 0.8881 ± 0.0057 | `src/train.py`, Colab |
 | LSTNet without AR (ablation) | same, no AR part | 0–9 | 325,846 | – | – | 0.1476 ± 0.0096 | 0.8617 ± 0.0043 | `src/train.py`, Colab |
 | DLinear (comparison) | window 168, moving average 25 | 0–9 | 338 | – | – | 0.1035 ± 0.0003 | 0.9052 ± 0.0003 | `src/train.py`, Colab |
 | *Paper: AR* | – | – | – | – | – | *0.1054* | *0.8595* | Table 2 |
@@ -60,7 +61,7 @@ so none is left out of CORR.
 | Copy: same time yesterday | lag 144 | none needed | 0 | 0.5099 | 0.8648 | 0.6113 | 0.8030 | `src/baselines.py` |
 | **First baseline: one shared neuron** | q = 24, L1 loss, 60 epochs | 0, 1, 2 | 25 | 0.8689 ± 0.0038 | – | 0.8909 ± 0.0035 | 0.4729 ± 0.0059 | `src/neuron_baseline.py` |
 | **AR, one model per plant** | L = 512 chosen on valid from 2⁰…2⁹, least squares | none needed | 70,281 | **0.4064** | **0.9099** | **0.5247** | **0.8462** | `src/baselines.py` |
-| **LSTNet-Skip (reproduction)** | `solar.sh` settings (skip-GRU 10), 100 epochs | 0–9 | – | 0.3745 ± 0.0085 | – | **0.4753 ± 0.0249** | 0.8835 ± 0.0098 | `src/train.py`, Colab |
+| **LSTNet-Skip (reproduction)** | `solar.sh` settings (skip-GRU 10), 100 epochs | 0–9 | 193,002 | 0.3745 ± 0.0085 | – | **0.4753 ± 0.0249** | 0.8835 ± 0.0098 | `src/train.py`, Colab |
 | LSTNet + RevIN (improvement) | same + RevIN | 0–9 | – | 0.3983 ± 0.0039 | – | 0.5055 ± 0.0137 | 0.8578 ± 0.0060 | `src/train.py`, Colab |
 | LSTNet without AR (ablation) | same, no AR part | 0–9 | – | 0.3695 ± 0.0070 | – | 0.4529 ± 0.0104 | 0.8922 ± 0.0051 | `src/train.py`, Colab |
 | DLinear (comparison) | window 168, moving average 25 | 0–9 | 338 | 0.4708 ± 0.0009 | – | 0.5740 ± 0.0011 | 0.8167 ± 0.0009 | `src/train.py`, Colab |
@@ -73,7 +74,9 @@ The result of every run (valid/test RSE, test CORR, best epoch) is in `results/r
 ## Notes
 
 * **LSTNet-Skip is reproduced:** 0.4753 ± 0.0249 over 10 seeds vs 0.4643 in the paper (within half a std).
-* RevIN makes RSE worse (+0.0302, p = 0.04) and CORR worse; LSTNet without AR is slightly better (p = 0.02); LSTNet clearly beats AR and DLinear.
+* RevIN makes RSE worse (+0.0302) and CORR worse; LSTNet without AR is slightly better (−0.0224); LSTNet clearly beats AR and DLinear.
+* The one-day skip lowers mean test RSE by 0.0202 (4 %) and halves the spread over seeds (std 0.0107 vs 0.0249), but it is better on only 5 of 10 seeds; the mean gain comes from the worst LSTNet seeds (seeds 4, 8, 9). Not significant (paired t-test Holm p = 0.15, Wilcoxon raw p = 0.23, Diebold–Mariano p = 0.57). It has 1.85× the parameters of LSTNet (357,402 vs 193,002) and a longer window.
+* With the extra comparison, Holm makes RevIN no longer significant (t-test 0.062, DM 0.067); LSTNet without AR stays significant (0.030, DM 0.039). All p-values: `results/stats_solar_h24.md`.
 * Our AR is far better than the paper's AR (0.5247 vs 0.8699) but, unlike on Electricity,
   worse than the paper's LSTNet-Skip (0.4643). So on Solar the deep part may really help.
 * Why our AR is so much better than the paper's: the lag. Validation RSE falls sharply between

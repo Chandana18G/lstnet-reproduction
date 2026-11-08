@@ -279,24 +279,26 @@ LSTNet + per-customer AR is 0.0020 ± 0.0021 better in RSE than LSTNet-Skip, on 
 | baseline: LSTNet-Skip (reproduction) | 0.4753 | 0.0249 | 0.8835 ± 0.0098 | 10 |
 | + RevIN (improvement) | 0.5055 | 0.0137 | 0.8578 ± 0.0060 | 10 |
 | − AR component (paper's ablation LSTw/oAR) | 0.4529 | 0.0104 | 0.8922 ± 0.0051 | 10 |
+| one-day skip, p = 144, q = 438 (improvement 2) | 0.4551 | 0.0107 | 0.8881 ± 0.0057 | 10 |
 | DLinear (comparison) | 0.5740 | 0.0011 | 0.8167 ± 0.0009 | 10 |
 | AR, one model per plant (comparison, least squares, L = 512) | 0.5247 | – (deterministic) | 0.8462 | – |
 | *Paper: LSTNet-Skip* | *0.4643* | – | *0.8870* | – |
 
   | Model vs LSTNet (Solar) | Mean RSE difference | Paired t-test p (Holm) | Wilcoxon p (raw) | DM statistic | DM p (Holm) |
   |---|---|---|---|---|---|
-  | + RevIN | +0.0302 (worse) | 0.041 | 0.027 | +2.12 | 0.034 |
-  | − AR component | −0.0224 (better) | 0.022 | 0.006 | −2.49 | 0.026 |
+  | + RevIN | +0.0302 (worse) | 0.062 | 0.027 | +2.12 | 0.067 |
+  | − AR component | −0.0224 (better) | 0.030 | 0.006 | −2.49 | 0.039 |
+  | one-day skip (improvement 2) | −0.0202 (better) | 0.147 | 0.232 | −0.57 | 0.571 |
   | DLinear | +0.0987 (worse) | < 0.0001 | 0.002 | +4.70 | < 0.0001 |
   | AR (one model per plant) | +0.0494 (worse) | – (no seeds) | – | +5.81 | < 0.0001 |
 
   **What this shows for Solar:**
   - **The hypothesis is not confirmed here either:** RevIN makes RSE 6 % worse (0.5055 vs 0.4753)
-    and also lowers CORR (0.8578 vs 0.8835); the RSE difference is significant in both tests, although Solar has the
+    and also lowers CORR (0.8578 vs 0.8835); the RSE difference is significant before correction (t-test raw p = 0.021) but not after Holm over the five Solar comparisons (p = 0.062, DM p = 0.067), although Solar has the
     strong level shift RevIN is designed for. A possible reason, still to be checked: many input
     windows are mostly night zeros, and normalising such near-constant windows is unstable.
   - **Unlike the paper's ablation, LSTNet without its AR part is slightly better on Solar**
-    (−0.0224, p = 0.02 in both tests). Not yet analysed; possible reasons are the night zeros and
+    (−0.0224, Holm p = 0.030, DM p = 0.039). Not yet analysed; possible reasons are the night zeros and
     the change of season, which make a fixed linear rule on the last 4 hours misleading.
   - **Here the deep part does earn its complexity:** LSTNet clearly beats both linear models
     (AR 0.5247, DLinear 0.5740; DM p < 0.0001).
